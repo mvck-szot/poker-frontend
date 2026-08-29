@@ -70,23 +70,23 @@ export default function App() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:3001/api/stats').then(res => res.json()).then(data => {
+    fetch('https://poker-api-fsle.onrender.com/api/stats').then(res => res.json()).then(data => {
       setEloTrain(data.elo_train); setElo1v1(data.elo_1v1); setElo1v7(data.elo_1v7);
       setStreak(data.streak); setHandsPlayed(data.hands_played); setEloHistory([data.elo_train]);
     }).catch(e => console.log(e));
 
-    fetch('http://127.0.0.1:3001/api/preflop').then(res => res.json()).then(data => setPreflopData(data)).catch(e => console.log(e));
+    fetch('https://poker-api-fsle.onrender.com/api/preflop').then(res => res.json()).then(data => setPreflopData(data)).catch(e => console.log(e));
   }, []);
 
   const saveStatsToDb = (mode: string, newElo: number, newStreak: number, newHandsPlayed: number) => {
-    fetch('http://127.0.0.1:3001/api/stats', {
+    fetch('https://poker-api-fsle.onrender.com/api/stats', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser?.id || null, mode, elo: newElo, streak: newStreak, hands_played: newHandsPlayed })
     }).catch(e => console.log(e));
   };
 
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault(); setAuthError('');
-    fetch(`http://127.0.0.1:3001/api/${authMode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: authUsername, password: authPassword }) })
+    fetch(`https://poker-api-fsle.onrender.com/api/${authMode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: authUsername, password: authPassword }) })
     .then(res => res.json()).then(data => {
       if (data.success) {
         setCurrentUser({ id: data.id, username: data.username });
@@ -105,7 +105,7 @@ export default function App() {
     setTrainIsSolving(true); setTrainHand(null); setTrainStrategy(null); setTrainFeedback({msg: '', type: null}); setShowCustomBuilder(false);
     setTrainActionLogs([`[SYSTEM] Obliczanie scenariusza: ${scenario.spotTitle || 'Custom'}...`]);
 
-    fetch(`http://127.0.0.1:3001/api/solve?hand=${scenario.hand}&board=${scenario.board}&pos=${scenario.pos}&history=${scenario.history || ''}`)
+    fetch(`https://poker-api-fsle.onrender.com/api/solve?hand=${scenario.hand}&board=${scenario.board}&pos=${scenario.pos}&history=${scenario.history || ''}`)
       .then(res => res.json()).then(data => {
         setTrainStrategy([...data.strategy, data.equity]); setTrainHand(scenario); setTrainIsSolving(false);
         setTrainActionLogs(prev => [...prev, `[SILNIK] GTO wyliczone. Twój ruch.`].slice(-8));
@@ -161,7 +161,7 @@ export default function App() {
 
   const loadArena1v1Hand = (currentBotElo: number) => {
     const s = generateRandomScenario(); setArenaIsSolving(true); setArenaHand(null); setArenaStrategy(null); setArenaFeedback({msg: '', type: null});
-    fetch(`http://127.0.0.1:3001/api/arena?hand=${s.hand}&board=${s.board}&pos=${s.pos}&bot_elo=${currentBotElo}`)
+    fetch(`https://poker-api-fsle.onrender.com/api/arena?hand=${s.hand}&board=${s.board}&pos=${s.pos}&bot_elo=${currentBotElo}`)
       .then(res => res.json()).then(data => { setArenaStrategy([...data.strategy, 0]); setBotMoveData({ action: data.bot_action, damage: Math.round(data.bot_damage) }); setArenaHand(s); setArenaIsSolving(false); });
   };
 
@@ -199,7 +199,7 @@ export default function App() {
     setPlayers8(prev => prev.map(p => ({ ...p, lastDamage: 0 })));
 
     if (wsRef.current) wsRef.current.close();
-    const ws = new WebSocket("ws://127.0.0.1:3001/ws/arena8");
+    const ws = new WebSocket("wss://poker-api-fsle.onrender.com/ws/arena8");
     wsRef.current = ws;
 
     ws.onopen = () => ws.send(JSON.stringify({ hand: s.hand, board: s.board, pos: s.pos }));
