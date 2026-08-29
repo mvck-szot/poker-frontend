@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare } from 'lucide-react';
+import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users } from 'lucide-react';
 
 import { generateRandomScenario, parseScenario } from './utils/poker';
 import { Home } from './pages/Home';
@@ -17,7 +17,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena' | 'friends'>('home');
   const [trainMode, setTrainMode] = useState<'random' | 'custom'>('random');
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
 
@@ -29,6 +29,11 @@ export default function App() {
   const [handsPlayed, setHandsPlayed] = useState(0);
   const [eloHistory, setEloHistory] = useState<number[]>([1000]);
   const [handHistory, setHandHistory] = useState<any[]>([]);
+
+  // ZNAJOMI (NOWOŚĆ)
+  const [friends, setFriends] = useState<any[]>([]);
+  const [friendSearch, setFriendSearch] = useState('');
+  const [friendMsg, setFriendMsg] = useState('');
 
   const [preflopData, setPreflopData] = useState<any>(null);
   const [selectedPreflop, setSelectedPreflop] = useState<any>(null);
@@ -49,8 +54,6 @@ export default function App() {
   const [arenaWinner, setArenaWinner] = useState<'hero' | 'bot' | null>(null);
   const [arenaPlacement, setArenaPlacement] = useState<number>(1);
   const [arenaEloChange, setArenaEloChange] = useState<number>(0);
-
-  // NOWY STAN: Licznik rund
   const [arenaRound, setArenaRound] = useState(1);
 
   const [customHero, setCustomHero] = useState<string[]>([]);
@@ -66,7 +69,6 @@ export default function App() {
   const [aliveCount, setAliveCount] = useState(8);
   const [shake, setShake] = useState(false);
 
-  // Tunel WebSocket dla Areny 1v7
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -77,6 +79,45 @@ export default function App() {
 
     fetch('https://poker-api-fsle.onrender.com/api/preflop').then(res => res.json()).then(data => setPreflopData(data)).catch(e => console.log(e));
   }, []);
+
+  const loadFriends = () => {
+    if (!currentUser) return;
+    fetch(`https://poker-api-fsle.onrender.com/api/friends/list?user_id=${currentUser.id}`)
+      .then(res => res.json())
+      .then(data => setFriends(data))
+      .catch(e => console.log(e));
+  };
+
+  useEffect(() => {
+    if (activeTab === 'friends' && currentUser) {
+      loadFriends();
+    }
+  }, [activeTab, currentUser]);
+
+  const handleSendFriendRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !friendSearch) return;
+
+    fetch('https://poker-api-fsle.onrender.com/api/friends/add', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUser.id, friend_username: friendSearch })
+    })
+    .then(res => res.json())
+    .then(data => {
+      setFriendMsg(data.message);
+      setFriendSearch('');
+      loadFriends();
+      setTimeout(() => setFriendMsg(''), 3000);
+    });
+  };
+
+  const handleAcceptFriend = (friendId: number) => {
+    if (!currentUser) return;
+    fetch('https://poker-api-fsle.onrender.com/api/friends/accept', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUser.id, friend_id: friendId })
+    }).then(() => loadFriends());
+  };
 
   const saveStatsToDb = (mode: string, newElo: number, newStreak: number, newHandsPlayed: number) => {
     fetch('https://poker-api-fsle.onrender.com/api/stats', {
@@ -109,7 +150,7 @@ export default function App() {
       .then(res => res.json()).then(data => {
         setTrainStrategy([...data.strategy, data.equity]); setTrainHand(scenario); setTrainIsSolving(false);
         setTrainActionLogs(prev => [...prev, `[SILNIK] GTO wyliczone. Twój ruch.`].slice(-8));
-      }).catch(e => setTrainIsSolving(false));
+      }).catch(() => setTrainIsSolving(false));
   };
 
   const loadNewRandomHand = () => { triggerSolver(generateRandomScenario()); };
@@ -254,7 +295,7 @@ export default function App() {
             const alive = currentPlayers.filter(p => !p.isDead).length;
             if (hero?.isDead || alive <= 1) {
                 const placement = hero?.placement || 1;
-                const eloChange = { 1: 40, 2: 20, 3: 10, 4: 5, 5: -5, 6: -10, 7: -20, 8: -40 }[placement] || 0;
+                const eloChange = ({ 1: 40, 2: 20, 3: 10, 4: 5, 5: -5, 6: -10, 7: -20, 8: -40 } as Record<number, number>)[placement] || 0;
                 setArenaPlacement(placement); setArenaEloChange(eloChange); setElo1v7(Math.max(0, elo1v7 + eloChange)); saveStatsToDb('1v7', Math.max(0, elo1v7 + eloChange), streak, handsPlayed); setArenaState('gameover');
             } else {
                 setArenaRound(r => r + 1);
@@ -303,13 +344,84 @@ export default function App() {
           <button onClick={() => { setActiveTab('train'); setTrainMode('random'); setShowCustomBuilder(false); }} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'train' && trainMode === 'random' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Target className="w-4 h-4" /> Losowe Rozdania</button>
           <button onClick={() => { setActiveTab('train'); setTrainMode('custom'); setShowCustomBuilder(true); }} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'train' && trainMode === 'custom' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Wrench className="w-4 h-4" /> Custom Board</button>
           <button onClick={() => setActiveTab('theory')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'theory' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BookOpen className="w-4 h-4" /> Preflop Charts</button>
-          <span className="text-[10px] text-zinc-500 uppercase font-bold px-3 mt-6 mb-2 block">Analiza</span>
+          <span className="text-[10px] text-zinc-500 uppercase font-bold px-3 mt-6 mb-2 block">Społeczność & Profil</span>
+          <button onClick={() => setActiveTab('friends')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'friends' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Users className="w-4 h-4" /> Znajomi</button>
           <button onClick={() => setActiveTab('stats')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'stats' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BarChart2 className="w-4 h-4" /> Profil GTO</button>
         </aside>
 
         {activeTab === 'home' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Home setActiveTab={setActiveTab} /></main>}
         {activeTab === 'theory' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
         {activeTab === 'stats' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
+
+        {/* NOWA ZAKŁADKA: ZNAJOMI */}
+        {activeTab === 'friends' && (
+          <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-3xl font-black tracking-tight text-white">Znajomi i Rywale</h2>
+              <p className="text-zinc-400 text-sm">Zaproś graczy do znajomych, aby wyzywać ich na bezpośrednie pojedynki GTO Duel.</p>
+            </div>
+
+            {!currentUser ? (
+              <div className="bg-zinc-900 border border-zinc-800 p-8 rounded text-center">
+                <p className="text-zinc-400 mb-4">Musisz być zalogowany, aby dodawać znajomych i grać mecze 1v1.</p>
+                <button onClick={() => setShowAuthModal(true)} className="bg-emerald-600 px-6 py-2 rounded font-bold text-white">Zaloguj się</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Wyszukiwarka */}
+                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4 h-fit">
+                  <h3 className="font-bold text-lg text-white">Dodaj znajomego</h3>
+                  <form onSubmit={handleSendFriendRequest} className="flex gap-3">
+                    <input type="text" placeholder="Wpisz nazwę gracza..." value={friendSearch} onChange={(e) => setFriendSearch(e.target.value)} className="flex-1 bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500" />
+                    <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2 rounded">Wyślij</button>
+                  </form>
+                  {friendMsg && <span className="text-sm font-bold text-emerald-400">{friendMsg}</span>}
+                </div>
+
+                {/* Lista */}
+                <div className="flex flex-col gap-6">
+                  {/* Oczekujące */}
+                  {friends.filter(f => f.status === 'pending').length > 0 && (
+                    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4">
+                      <h3 className="font-bold text-lg text-amber-500">Oczekujące zaproszenia</h3>
+                      <div className="flex flex-col gap-3">
+                        {friends.filter(f => f.status === 'pending').map(f => (
+                          <div key={f.id} className="bg-[#121212] border border-zinc-800 p-3 rounded flex justify-between items-center">
+                            <span className="font-bold text-white">{f.username}</span>
+                            <button onClick={() => handleAcceptFriend(f.id)} className="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-xs font-bold text-white">Akceptuj</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Zaakceptowani */}
+                  <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4">
+                    <h3 className="font-bold text-lg text-white">Twoi znajomi</h3>
+                    {friends.filter(f => f.status === 'accepted').length === 0 ? (
+                      <p className="text-zinc-500 text-sm">Nie masz jeszcze żadnych znajomych. Poszukaj kogoś!</p>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {friends.filter(f => f.status === 'accepted').map(f => (
+                          <div key={f.id} className="bg-[#121212] border border-zinc-800 p-4 rounded flex justify-between items-center">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white">{f.username}</span>
+                              <span className="text-xs font-mono text-zinc-500">ELO: {f.elo_1v1}</span>
+                            </div>
+                            <button onClick={() => alert('Już za chwilę zaczniemy budować pokoje WebSocket do bezpośrednich wyzwań!')} className="bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white border border-rose-600/50 px-4 py-2 rounded text-xs font-bold transition-colors">
+                              Wyzwij na 1v1
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        )}
+
         {activeTab === 'arena' && <Arena {...arenaProps} />}
         {activeTab === 'train' && <Train {...trainProps} />}
       </div>
