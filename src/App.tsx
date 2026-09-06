@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users } from 'lucide-react';
+import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users, Activity } from 'lucide-react';
 
 import { generateRandomScenario, parseScenario } from './utils/poker';
 import { Home } from './pages/Home';
@@ -17,7 +17,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena' | 'friends'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena' | 'friends' | 'duel'>('home');
   const [trainMode, setTrainMode] = useState<'random' | 'custom'>('random');
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
 
@@ -30,10 +30,21 @@ export default function App() {
   const [eloHistory, setEloHistory] = useState<number[]>([1000]);
   const [handHistory, setHandHistory] = useState<any[]>([]);
 
-  // ZNAJOMI (NOWOŚĆ)
+  // ZNAJOMI
   const [friends, setFriends] = useState<any[]>([]);
   const [friendSearch, setFriendSearch] = useState('');
   const [friendMsg, setFriendMsg] = useState('');
+
+  // === NOWOŚĆ: STAN GTO DUEL (LIVE) ===
+  const [duelState, setDuelState] = useState<'idle' | 'lobby' | 'playing' | 'gameover'>('idle');
+  const [duelRoomId, setDuelRoomId] = useState('');
+  const [duelOpponent, setDuelOpponent] = useState<{id: number, username: string} | null>(null);
+  const [duelHeroHp, setDuelHeroHp] = useState(1000);
+  const [duelOpponentHp, setDuelOpponentHp] = useState(1000);
+  const [duelHand, setDuelHand] = useState<any>(null);
+  const [duelFeedback, setDuelFeedback] = useState<any>({msg: '', type: null});
+  const [duelWinner, setDuelWinner] = useState<'hero' | 'opponent' | null>(null);
+  const duelWsRef = useRef<WebSocket | null>(null);
 
   const [preflopData, setPreflopData] = useState<any>(null);
   const [selectedPreflop, setSelectedPreflop] = useState<any>(null);
@@ -118,6 +129,86 @@ export default function App() {
       body: JSON.stringify({ user_id: currentUser.id, friend_id: friendId })
     }).then(() => loadFriends());
   };
+
+  // === WEBSOCKET GTO DUEL (LOGIKA) ===
+  const handleChallengeFriend = (friendId: number, friendName: string) => {
+    if (!currentUser) return;
+
+    // Generujemy unikalne ID pokoju, zawsze takie same dla tej dwójki
+    const roomId = `room_${Math.min(currentUser.id, friendId)}_${Math.max(currentUser.id, friendId)}`;
+    setDuelRoomId(roomId);
+    setDuelOpponent({ id: friendId, username: friendName });
+    setDuelHeroHp(1000);
+    setDuelOpponentHp(1000);
+    setDuelState('lobby');
+    setActiveTab('duel');
+
+    if (duelWsRef.current) duelWsRef.current.close();
+
+    // Zestawiamy tunel SSL
+    const ws = new WebSocket(`wss://poker-api-fsle.onrender.com/ws/duel?room_id=${roomId}&user_id=${currentUser.id}&username=${currentUser.username}`);
+    duelWsRef.current = ws;
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'error') {
+            alert(data.msg);
+            setDuelState('idle');
+            setActiveTab('friends');
+        } else if (data.type === 'ready') {
+            setDuelState('playing');
+            setDuelFeedback({msg: 'Połączono! Rozpoczynanie meczu...', type: 'info'});
+
+            // System 'Hosta' - gracz o mniejszym ID rzuca kośćmi i inicjuje rozdanie
+            if (currentUser.id < friendId) {
+                setTimeout(() => {
+                    const s = generateRandomScenario();
+                    ws.send(JSON.stringify({ type: 'new_round', hand: s.hand, board: s.board, pos: s.pos }));
+                }, 2000);
+            }
+        } else if (data.type === 'round_start') {
+            setDuelHand({ hand: data.hand, board: data.board, pos: data.pos });
+            setDuelFeedback({msg: 'Twoja kolej! Wybierz akcję GTO.', type: 'info'});
+        } else if (data.type === 'round_result') {
+            const isP1 = data.p1_id === currentUser.id;
+            setDuelHeroHp(isP1 ? data.p1_hp : data.p2_hp);
+            setDuelOpponentHp(isP1 ? data.p2_hp : data.p1_hp);
+
+            const myLoss = isP1 ? data.p1_loss : data.p2_loss;
+            const oppLoss = isP1 ? data.p2_loss : data.p1_loss;
+
+            setDuelFeedback({ msg: `Wynik rundy: Otrzymujesz -${myLoss} HP | ${friendName} otrzymuje -${oppLoss} HP`, type: myLoss <= oppLoss ? 'success' : 'error' });
+            if (myLoss > 0) { setShake(true); setTimeout(() => setShake(false), 600); }
+
+            if (data.game_over) {
+                setTimeout(() => {
+                    setDuelState('gameover');
+                    setDuelWinner(data.winner_id === currentUser.id ? 'hero' : 'opponent');
+                }, 3000);
+            } else {
+                if (currentUser.id < friendId) {
+                    setTimeout(() => {
+                        const s = generateRandomScenario();
+                        ws.send(JSON.stringify({ type: 'new_round', hand: s.hand, board: s.board, pos: s.pos }));
+                    }, 4000);
+                }
+            }
+        } else if (data.type === 'opponent_disconnected') {
+            alert('Przeciwnik opuścił pokój lub stracił połączenie!');
+            setDuelState('idle');
+            setActiveTab('friends');
+        }
+    };
+  };
+
+  const handleDuelAction = (idx: number) => {
+    if (duelWsRef.current && duelWsRef.current.readyState === WebSocket.OPEN) {
+        duelWsRef.current.send(JSON.stringify({ type: 'action', action_idx: idx }));
+        setDuelFeedback({msg: 'Ukryto akcję. Czekam na uderzenie przeciwnika...', type: 'info'});
+    }
+  };
+
 
   const saveStatsToDb = (mode: string, newElo: number, newStreak: number, newHandsPlayed: number) => {
     fetch('https://poker-api-fsle.onrender.com/api/stats', {
@@ -353,7 +444,7 @@ export default function App() {
         {activeTab === 'theory' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
         {activeTab === 'stats' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
 
-        {/* NOWA ZAKŁADKA: ZNAJOMI */}
+        {/* ZAKŁADKA ZNAJOMI Z PRZYCISKIEM WYZWANIA */}
         {activeTab === 'friends' && (
           <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8">
             <div className="flex flex-col gap-2">
@@ -368,7 +459,6 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Wyszukiwarka */}
                 <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4 h-fit">
                   <h3 className="font-bold text-lg text-white">Dodaj znajomego</h3>
                   <form onSubmit={handleSendFriendRequest} className="flex gap-3">
@@ -378,9 +468,7 @@ export default function App() {
                   {friendMsg && <span className="text-sm font-bold text-emerald-400">{friendMsg}</span>}
                 </div>
 
-                {/* Lista */}
                 <div className="flex flex-col gap-6">
-                  {/* Oczekujące */}
                   {friends.filter(f => f.status === 'pending').length > 0 && (
                     <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4">
                       <h3 className="font-bold text-lg text-amber-500">Oczekujące zaproszenia</h3>
@@ -395,7 +483,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Zaakceptowani */}
                   <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4">
                     <h3 className="font-bold text-lg text-white">Twoi znajomi</h3>
                     {friends.filter(f => f.status === 'accepted').length === 0 ? (
@@ -408,7 +495,7 @@ export default function App() {
                               <span className="font-bold text-white">{f.username}</span>
                               <span className="text-xs font-mono text-zinc-500">ELO: {f.elo_1v1}</span>
                             </div>
-                            <button onClick={() => alert('Już za chwilę zaczniemy budować pokoje WebSocket do bezpośrednich wyzwań!')} className="bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white border border-rose-600/50 px-4 py-2 rounded text-xs font-bold transition-colors">
+                            <button onClick={() => handleChallengeFriend(f.id, f.username)} className="bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white border border-rose-600/50 px-4 py-2 rounded text-xs font-bold transition-colors">
                               Wyzwij na 1v1
                             </button>
                           </div>
@@ -420,6 +507,126 @@ export default function App() {
               </div>
             )}
           </main>
+        )}
+
+        {/* === NOWA GŁÓWNA ZAKŁADKA GTO DUEL === */}
+        {activeTab === 'duel' && (
+          <motion.main animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}} transition={{ duration: 0.4 }} className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col relative">
+
+            <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-6">
+                <div className="flex flex-col">
+                    <h2 className="text-3xl font-black text-white flex items-center gap-3"><Swords className="text-rose-500" /> GTO Duel (Na Żywo)</h2>
+                    <span className="text-xs font-mono text-zinc-500 mt-1">POKÓJ: {duelRoomId}</span>
+                </div>
+                <button onClick={() => { if(duelWsRef.current) duelWsRef.current.close(); setActiveTab('friends'); setDuelState('idle'); loadFriends(); }} className="text-zinc-500 hover:text-white font-bold text-sm bg-zinc-900 px-4 py-2 rounded border border-zinc-800">
+                    Opuść pokój
+                </button>
+            </div>
+
+            {/* STAN: LOBBY */}
+            {duelState === 'lobby' && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                    <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <h3 className="text-2xl font-black text-white text-center">Oczekujesz w pokoju...</h3>
+                    <p className="text-zinc-400 text-center max-w-sm">Gdy <span className="text-emerald-400 font-bold">{duelOpponent?.username}</span> kliknie u siebie "Wyzwij na 1v1", system automatycznie połączy Wasze maszyny i rozpocznie pojedynek.</p>
+                </div>
+            )}
+
+            {/* STAN: GRA W TOKU */}
+            {duelState === 'playing' && duelHand && (
+                <div className="flex flex-col gap-8 flex-1 max-w-5xl w-full mx-auto">
+
+                    {/* HUD - Paski Zdrowia */}
+                    <div className="flex justify-between items-center bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-2xl relative overflow-hidden">
+
+                        {/* Wypiekający się styl dla Hosta */}
+                        <div className="flex flex-col w-[40%] z-10">
+                            <span className="font-black text-white mb-2 text-lg uppercase tracking-wider">{currentUser.username} <span className="text-zinc-500 text-sm">(TY)</span></span>
+                            <div className="h-6 bg-zinc-950 rounded-full overflow-hidden border border-zinc-700">
+                                <div className="h-full bg-gradient-to-r from-blue-700 to-blue-500 transition-all duration-700" style={{width: `${(duelHeroHp/1000)*100}%`}}></div>
+                            </div>
+                            <span className="text-sm font-black font-mono text-blue-400 mt-2">{duelHeroHp} HP</span>
+                        </div>
+
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-black text-zinc-800 italic opacity-50 select-none z-0">VS</div>
+
+                        {/* Pasek Przeciwnika */}
+                        <div className="flex flex-col w-[40%] items-end z-10">
+                            <span className="font-black text-rose-500 mb-2 text-lg uppercase tracking-wider">{duelOpponent?.username}</span>
+                            <div className="h-6 bg-zinc-950 rounded-full overflow-hidden w-full flex justify-end border border-zinc-700">
+                                <div className="h-full bg-gradient-to-l from-rose-700 to-rose-500 transition-all duration-700" style={{width: `${(duelOpponentHp/1000)*100}%`}}></div>
+                            </div>
+                            <span className="text-sm font-black font-mono text-rose-400 mt-2">{duelOpponentHp} HP</span>
+                        </div>
+                    </div>
+
+                    {/* Stół do gry */}
+                    <div className="flex-1 flex flex-col items-center justify-center gap-8 bg-zinc-900/30 rounded-xl border border-zinc-800 p-8">
+                         {duelFeedback.msg && (
+                            <motion.div initial={{y: -20, opacity: 0}} animate={{y:0, opacity: 1}} className={`px-8 py-3 rounded-full font-black tracking-wide text-sm ${duelFeedback.type === 'success' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/50' : duelFeedback.type === 'error' ? 'bg-rose-600/20 text-rose-400 border border-rose-600/50' : 'bg-blue-600/20 text-blue-400 border border-blue-600/50'}`}>
+                                {duelFeedback.msg}
+                            </motion.div>
+                        )}
+
+                        <div className="flex flex-col items-center gap-3">
+                            <span className="text-[10px] uppercase font-black tracking-widest text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">Board ({duelHand.pos})</span>
+                            <div className="flex gap-2 min-h-[5rem]">
+                                {duelHand.board ? duelHand.board.match(/.{1,2}/g)?.map((c:string, i:number) => {
+                                    const isRed = c.includes('h') || c.includes('d');
+                                    return (
+                                        <motion.div initial={{scale:0, rotateY: 90}} animate={{scale:1, rotateY: 0}} transition={{delay: i*0.1}} key={i} className={`w-14 h-20 bg-white rounded flex items-center justify-center font-black text-xl border-2 border-zinc-300 shadow-lg ${isRed ? 'text-rose-600' : 'text-zinc-900'}`}>{c}</motion.div>
+                                    )
+                                }) : <div className="text-zinc-600 italic font-bold">Faza Preflop</div>}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-3">
+                            <span className="text-[10px] uppercase font-black tracking-widest text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800 mt-4">Twoje Karty (Ukryte)</span>
+                            <div className="flex gap-2">
+                                {duelHand.hand.match(/.{1,2}/g)?.map((c:string, i:number) => {
+                                    const isRed = c.includes('h') || c.includes('d');
+                                    return (
+                                        <div key={i} className={`w-16 h-24 bg-white rounded flex items-center justify-center font-black text-2xl border-4 border-zinc-300 shadow-2xl transform hover:-translate-y-2 transition-transform ${isRed ? 'text-rose-600' : 'text-zinc-900'}`}>{c}</div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Przyciski GTO */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {['FOLD', duelHand.board===''?'CHECK/CALL':'CALL', 'RAISE 33%', 'RAISE 75%'].map((actionName, idx) => (
+                            <button key={idx} onClick={() => handleDuelAction(idx)} disabled={duelFeedback.msg.includes('Czekam') || duelFeedback.msg.includes('Wynik')} className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700 py-6 rounded-xl font-black tracking-wider text-white transition-all shadow-lg active:scale-95">
+                                {actionName}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* STAN: KONIEC GRY */}
+            {duelState === 'gameover' && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                    <motion.div initial={{scale:0, rotate: -180}} animate={{scale:1, rotate:0}} transition={{type: "spring"}} className="w-40 h-40 rounded-full flex items-center justify-center text-6xl mb-4 shadow-[0_0_80px_rgba(0,0,0,0.5)] bg-zinc-900 border-4 border-zinc-800 relative">
+                        {duelWinner === 'hero' ? '🏆' : '💀'}
+                        {duelWinner === 'hero' && <div className="absolute inset-0 rounded-full shadow-[0_0_50px_rgba(16,185,129,0.5)] animate-pulse"></div>}
+                        {duelWinner === 'opponent' && <div className="absolute inset-0 rounded-full shadow-[0_0_50px_rgba(225,29,72,0.5)] animate-pulse"></div>}
+                    </motion.div>
+
+                    <h2 className="text-5xl font-black text-white">{duelWinner === 'hero' ? 'ZWYCIĘSTWO!' : 'PORAŻKA!'}</h2>
+
+                    <p className="text-zinc-400 text-lg max-w-md text-center">
+                        {duelWinner === 'hero'
+                            ? `Zniszczyłeś algorytm GTO w głowie gracza ${duelOpponent?.username}. Twoje ELO wzrosło o +25!`
+                            : `${duelOpponent?.username} zagrał bliżej optymalnej strategii matematycznej. Tracisz 25 punktów ELO.`}
+                    </p>
+
+                    <button onClick={() => { setActiveTab('friends'); setDuelState('idle'); loadFriends(); }} className="mt-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest px-10 py-4 rounded-xl shadow-lg hover:shadow-emerald-500/20 transition-all">
+                        Powrót na Salony
+                    </button>
+                </div>
+            )}
+          </motion.main>
         )}
 
         {activeTab === 'arena' && <Arena {...arenaProps} />}
