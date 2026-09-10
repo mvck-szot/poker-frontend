@@ -8,6 +8,7 @@ import { Theory } from './pages/Theory';
 import { Stats } from './pages/Stats';
 import { Arena } from './pages/Arena';
 import { Train } from './pages/Train';
+import { Account } from './pages/Account';
 
 export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -17,7 +18,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena' | 'friends' | 'duel' | 'leaderboard'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena' | 'friends' | 'duel' | 'leaderboard' | 'account'>('home');
   const [trainMode, setTrainMode] = useState<'random' | 'custom'>('random');
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
 
@@ -370,6 +371,7 @@ export default function App() {
           <button onClick={() => { setActiveTab('train'); setTrainMode('custom'); setShowCustomBuilder(true); }} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'train' && trainMode === 'custom' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Wrench className="w-4 h-4" /> Custom Board</button>
           <button onClick={() => setActiveTab('theory')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'theory' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BookOpen className="w-4 h-4" /> Preflop Charts</button>
           <span className="text-[10px] text-zinc-500 uppercase font-bold px-3 mt-6 mb-2 block">Społeczność & Profil</span>
+          <button onClick={() => setActiveTab('account')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'account' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><User className="w-4 h-4" /> Moje Konto</button>
           <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'leaderboard' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Trophy className="w-4 h-4" /> Ranking Globalny</button>
           <button onClick={() => setActiveTab('friends')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'friends' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Users className="w-4 h-4" /> Znajomi</button>
           <button onClick={() => setActiveTab('stats')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'stats' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BarChart2 className="w-4 h-4" /> Profil GTO</button>
@@ -378,6 +380,7 @@ export default function App() {
         {activeTab === 'home' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Home setActiveTab={setActiveTab} /></main>}
         {activeTab === 'theory' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
         {activeTab === 'stats' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
+        {activeTab === 'account' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Account currentUser={currentUser} friends={friends} handHistory={handHistory} setActiveTab={setActiveTab} /></main>}
 
         {/* === NOWA ZAKŁADKA RANKING === */}
         {activeTab === 'leaderboard' && (
