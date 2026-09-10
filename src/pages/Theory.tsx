@@ -1,99 +1,131 @@
-import { BookOpen, Search } from 'lucide-react';
-import { PreflopChart } from '../components/PreflopChart';
-import { PokerCard } from '../components/PokerCard';
+import { useState } from 'react';
+import { BookOpen, Info } from 'lucide-react';
 
-export const Theory = ({ activeTheoryPos, setActiveTheoryPos, preflopData, selectedPreflop, setSelectedPreflop }: any) => {
-  const renderRangeExplorerPanel = () => {
-    const currentPositionData = preflopData ? preflopData[activeTheoryPos] : null;
+interface TheoryProps {
+  activeTheoryPos: string;
+  setActiveTheoryPos: (pos: string) => void;
+  preflopData: any;
+  selectedPreflop: any;
+  setSelectedPreflop: (val: any) => void;
+}
 
-    if (!selectedPreflop || !currentPositionData) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center text-slate-600 text-center gap-4 py-20 px-6">
-          <Search className="w-12 h-12 mb-2 opacity-20" />
-          <p className="text-sm font-bold uppercase tracking-widest">Eksplorator</p>
-          <p className="text-xs">Kliknij rękę na siatce, aby zobaczyć strategię.</p>
-        </div>
-      );
+export function Theory({ activeTheoryPos, setActiveTheoryPos, preflopData }: TheoryProps) {
+  const positions = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+  // Pobieramy zakres dla aktualnie wybranej pozycji
+  // (Na ten moment backend zwraca tylko UTG i BTN, dla innych dajemy domyślnie pusty)
+  const currentRange = preflopData ? preflopData[activeTheoryPos] || {} : {};
+
+  // Funkcja przypisująca kolory
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case 'R': return 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.3)]'; // Raise
+      case 'C': return 'bg-emerald-500 text-white'; // Call
+      case 'F': return 'bg-zinc-800 text-zinc-500 opacity-50'; // Fold
+      default: return 'bg-zinc-900 border-zinc-800 text-zinc-600'; // Brak danych
     }
-
-    const { row, col } = selectedPreflop;
-    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-    let handKey = "", label = "", cards: string[] = [];
-
-    if (row === col) {
-        handKey = `${ranks[row]}h${ranks[row]}s__`; label = `${ranks[row]}${ranks[row]}`; cards = [`${ranks[row]}h`, `${ranks[row]}s`];
-    } else if (col > row) {
-        handKey = `${ranks[row]}h${ranks[col]}h__`; label = `${ranks[row]}${ranks[col]}s`; cards = [`${ranks[row]}h`, `${ranks[col]}h`];
-    } else {
-        handKey = `${ranks[col]}h${ranks[row]}d__`; label = `${ranks[col]}${ranks[row]}o`; cards = [`${ranks[col]}h`, `${ranks[row]}d`];
-    }
-
-    const strat = currentPositionData[handKey] || [1, 0, 0, 0];
-    const [fold, call, smallRaise, bigRaise] = strat;
-
-    let category = "Grywalna";
-    if (bigRaise + smallRaise > 0.8) category = "Premium / Value";
-    else if (fold > 0.8) category = "Fold / Śmieci";
-    else if (call > 0.3 && (bigRaise + smallRaise) > 0.3) category = "Mix (Mieszana)";
-
-    return (
-      <div className="flex flex-col gap-8 w-full h-full">
-        <div className="flex justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-3xl font-black text-white">{label}</h3>
-            <span className="text-[10px] text-amber-500 border border-amber-500/30 px-2 py-1 rounded-sm bg-amber-500/10 uppercase font-black">{activeTheoryPos}</span>
-          </div>
-          <span className="text-[10px] text-slate-500 border border-slate-800 px-3 py-1.5 rounded-sm bg-slate-900/50 uppercase font-mono">{category}</span>
-        </div>
-        <div className="flex justify-center gap-4">
-          <PokerCard card={cards[0]} size="large" />
-          <PokerCard card={cards[1]} size="large" />
-        </div>
-        <div className="flex flex-col gap-4 mt-2">
-          {[
-            { label: 'Raise 75%', val: bigRaise, color: 'bg-purple-600', text: 'text-purple-500' },
-            { label: 'Raise 33%', val: smallRaise, color: 'bg-emerald-500', text: 'text-emerald-500' },
-            { label: 'Call', val: call, color: 'bg-cyan-500', text: 'text-cyan-500' },
-            { label: 'Fold', val: fold, color: 'bg-rose-600', text: 'text-rose-500' }
-          ].map(s => (
-            <div key={s.label} className="bg-[#0a0c0b] p-3 rounded-sm border border-slate-800 flex flex-col gap-1.5">
-              <div className="flex justify-between text-[10px] font-bold">
-                <span className={`${s.text} uppercase tracking-widest`}>{s.label}</span>
-                <span className={`${s.text} opacity-80 font-mono text-base`}>{(s.val * 100).toFixed(1)}%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-900 rounded-sm overflow-hidden">
-                <div style={{width: `${s.val * 100}%`}} className={`h-full ${s.color} transition-all duration-500`}></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 items-start">
-      <div className="flex-1 flex flex-col gap-6 w-full">
-        <div>
-          <h2 className="text-3xl font-black text-white flex items-center gap-3 mb-2">
-            <BookOpen className="w-8 h-8 text-emerald-500"/> Preflop GTO Ranges
-          </h2>
-          <p className="text-slate-400 text-sm">Wybierz pozycję przy stole, aby zobaczyć optymalny zakres rąk.</p>
+    <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full h-full text-slate-200">
+
+      {/* Nagłówek i Nawigacja */}
+      <div className="flex flex-col md:flex-row justify-between items-center bg-[#1a1c23] p-4 rounded-xl border border-zinc-800 shadow-md gap-4">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <BookOpen className="w-6 h-6 text-blue-500" />
+          <h2 className="text-xl font-bold text-white tracking-wide">Preflop Charts</h2>
         </div>
-        <div className="flex gap-2 p-1.5 bg-[#0d100f] border border-slate-800 rounded-sm w-fit shadow-xl">
-          {['UTG', 'CO', 'BTN', 'SB'].map(pos => (
-            <button key={pos} onClick={() => setActiveTheoryPos(pos)} className={`px-6 py-2 rounded-sm font-black text-xs transition-colors ${activeTheoryPos === pos ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+
+        {/* Wybór Pozycji */}
+        <div className="flex gap-2 overflow-x-auto w-full md:w-auto bg-zinc-900/50 p-1 rounded-lg border border-zinc-800">
+          {positions.map(pos => (
+            <button
+              key={pos}
+              onClick={() => setActiveTheoryPos(pos)}
+              className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded transition-all ${
+                activeTheoryPos === pos
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
               {pos}
             </button>
           ))}
         </div>
-        <div className="flex justify-center bg-[#0d100f] border border-slate-800 p-8 rounded-sm shadow-xl relative">
-          <PreflopChart strategyData={preflopData ? preflopData[activeTheoryPos] : null} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} />
-        </div>
       </div>
-      <div className="w-full lg:w-96 shrink-0 bg-[#0d100f] border border-slate-800 p-6 rounded-sm shadow-xl sticky top-6 min-h-[500px]">
-        {renderRangeExplorerPanel()}
+
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+        {/* Główna Siatka 13x13 (Grid) */}
+        <div className="bg-[#1a1c23] p-6 rounded-xl border border-zinc-800 shadow-2xl overflow-x-auto w-full lg:w-auto">
+          <div className="min-w-[600px]">
+            {ranks.map((r1, i) => (
+              <div key={r1} className="flex">
+                {ranks.map((r2, j) => {
+                  let handStr = '';
+                  if (i === j) {
+                    handStr = `${r1}${r2}`; // Pary (AA)
+                  } else if (i < j) {
+                    handStr = `${r1}${r2}s`; // Suited (AKs) - wyższa karta zawsze pierwsza (r1)
+                  } else {
+                    handStr = `${r2}${r1}o`; // Offsuit (AKo) - wyższa karta zawsze pierwsza (r2)
+                  }
+
+                  const action = currentRange[handStr] || 'F';
+                  const colorClass = getActionColor(action);
+
+                  return (
+                    <div
+                      key={handStr}
+                      className={`w-12 h-12 m-[1px] rounded border border-black/20 flex items-center justify-center font-bold text-[11px] cursor-pointer hover:ring-2 ring-white transition-all ${colorClass}`}
+                      title={`${handStr} - ${action === 'R' ? 'Raise' : action === 'C' ? 'Call' : 'Fold'}`}
+                    >
+                      {handStr}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Panel boczny (Legenda i info) */}
+        <div className="flex flex-col gap-6 w-full lg:w-80">
+
+          <div className="bg-[#1a1c23] p-6 rounded-xl border border-zinc-800">
+            <h3 className="font-bold text-white mb-4 uppercase tracking-widest text-xs text-zinc-500">Legenda</h3>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]"></div>
+                <span className="font-bold text-sm text-white">Raise (Open)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded bg-emerald-500"></div>
+                <span className="font-bold text-sm text-white">Call (Limp)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700"></div>
+                <span className="font-bold text-sm text-zinc-400">Fold</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-900/20 p-6 rounded-xl border border-blue-900/50 flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-blue-400 font-bold mb-2">
+              <Info className="w-5 h-5" />
+              Informacja
+            </div>
+            <p className="text-sm text-blue-200/70 leading-relaxed">
+              Obecnie wyświetlasz zakres dla pozycji <span className="text-white font-black">{activeTheoryPos}</span>.
+              {activeTheoryPos === 'UTG' && " UTG (Under The Gun) to pozycja otwierająca. Graj tylko najsilniejsze układy."}
+              {activeTheoryPos === 'BTN' && " BTN (Button) to najlepsza pozycja przy stole. Możesz otwierać bardzo szeroko, aby kraść blindy."}
+              {!['UTG', 'BTN'].includes(activeTheoryPos) && " Baza danych GTO dla tej pozycji jest w trakcie przeliczania."}
+            </p>
+          </div>
+
+        </div>
       </div>
     </div>
   );
-};
+}
