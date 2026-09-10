@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users, Trophy } from 'lucide-react';
+import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users, Trophy, User } from 'lucide-react';
 
 import { generateRandomScenario, parseScenario } from './utils/poker';
 import { Home } from './pages/Home';
@@ -36,7 +36,7 @@ export default function App() {
   const [friendSearch, setFriendSearch] = useState('');
   const [friendMsg, setFriendMsg] = useState('');
 
-  // RANKING (NOWOŚĆ)
+  // RANKING
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
   // STAN GTO DUEL (LIVE)
@@ -111,7 +111,9 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (activeTab === 'friends' && currentUser) loadFriends();
+    if (activeTab === 'friends' || activeTab === 'account') {
+      loadFriends();
+    }
     if (activeTab === 'leaderboard') loadLeaderboard();
   }, [activeTab, currentUser]);
 
@@ -348,7 +350,6 @@ export default function App() {
             <button className={`${activeTab === 'arena' ? 'text-white' : 'hover:text-zinc-200'}`} onClick={() => setActiveTab('arena')}>Arena</button>
             <button className={`${activeTab === 'theory' ? 'text-white' : 'hover:text-zinc-200'}`} onClick={() => setActiveTab('theory')}>Teoria</button>
             <button className={`${activeTab === 'train' ? 'text-white' : 'hover:text-zinc-200'}`} onClick={() => { setActiveTab('train'); setTrainMode('random'); setShowCustomBuilder(false); }}>Trening</button>
-            <button className={`${activeTab === 'leaderboard' ? 'text-white' : 'hover:text-zinc-200'}`} onClick={() => setActiveTab('leaderboard')}>Ranking</button>
           </nav>
         </div>
         <div className="flex items-center gap-5 text-zinc-400">
@@ -370,19 +371,21 @@ export default function App() {
           <button onClick={() => { setActiveTab('train'); setTrainMode('random'); setShowCustomBuilder(false); }} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'train' && trainMode === 'random' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Target className="w-4 h-4" /> Losowe Rozdania</button>
           <button onClick={() => { setActiveTab('train'); setTrainMode('custom'); setShowCustomBuilder(true); }} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'train' && trainMode === 'custom' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Wrench className="w-4 h-4" /> Custom Board</button>
           <button onClick={() => setActiveTab('theory')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'theory' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BookOpen className="w-4 h-4" /> Preflop Charts</button>
+
           <span className="text-[10px] text-zinc-500 uppercase font-bold px-3 mt-6 mb-2 block">Społeczność & Profil</span>
           <button onClick={() => setActiveTab('account')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'account' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><User className="w-4 h-4" /> Moje Konto</button>
           <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'leaderboard' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Trophy className="w-4 h-4" /> Ranking Globalny</button>
           <button onClick={() => setActiveTab('friends')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'friends' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><Users className="w-4 h-4" /> Znajomi</button>
-          <button onClick={() => setActiveTab('stats')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'stats' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BarChart2 className="w-4 h-4" /> Profil GTO</button>
+          <button onClick={() => setActiveTab('stats')} className={`flex items-center gap-3 px-3 py-2.5 rounded font-bold text-sm ${activeTab === 'stats' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50'}`}><BarChart2 className="w-4 h-4" /> Statystyki GTO</button>
         </aside>
 
         {activeTab === 'home' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Home setActiveTab={setActiveTab} /></main>}
         {activeTab === 'theory' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
         {activeTab === 'stats' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
+
+        {/* NOWOŚĆ: Konto */}
         {activeTab === 'account' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Account currentUser={currentUser} friends={friends} handHistory={handHistory} setActiveTab={setActiveTab} /></main>}
 
-        {/* === NOWA ZAKŁADKA RANKING === */}
         {activeTab === 'leaderboard' && (
           <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8 items-center">
             <div className="flex flex-col items-center gap-2 mb-4">
@@ -427,7 +430,6 @@ export default function App() {
           </main>
         )}
 
-        {/* ZAKŁADKA ZNAJOMI */}
         {activeTab === 'friends' && (
           <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8">
             <div className="flex flex-col gap-2">

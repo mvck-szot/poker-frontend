@@ -1,4 +1,4 @@
-import { Settings, Users, History, Play } from 'lucide-react';
+import { Settings, History } from 'lucide-react';
 
 interface AccountProps {
   currentUser: any;
@@ -82,7 +82,7 @@ export function Account({ currentUser, friends, handHistory, setActiveTab }: Acc
             </div>
           </div>
 
-          {/* Historia Gier (Empty State) */}
+          {/* Historia Gier */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
             <div className="bg-zinc-800/50 px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
               <h3 className="font-bold text-sm text-zinc-300">Historia Rozdań ({handHistory.length})</h3>
@@ -98,7 +98,6 @@ export function Account({ currentUser, friends, handHistory, setActiveTab }: Acc
               </div>
             ) : (
               <div className="p-4 flex flex-col gap-2">
-                {/* Skrócona historia rozdań (ostatnie 3) */}
                 {handHistory.slice(0, 3).map((hand, idx) => (
                   <div key={idx} className="flex justify-between items-center p-3 bg-[#121212] rounded border border-zinc-800">
                     <div className="flex items-center gap-3">
@@ -120,7 +119,7 @@ export function Account({ currentUser, friends, handHistory, setActiveTab }: Acc
 
         {/* Prawa kolumna (Boczna) */}
         <div className="col-span-1 flex flex-col gap-6">
-          {/* Szybki motyw (Your Theme) */}
+          {/* Wygląd stołu */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
             <h3 className="font-bold text-sm text-zinc-300 mb-3">Wygląd stołu</h3>
             <div className="h-20 bg-emerald-800 rounded flex items-center justify-center border-2 border-zinc-700 shadow-inner relative overflow-hidden">
@@ -129,7 +128,7 @@ export function Account({ currentUser, friends, handHistory, setActiveTab }: Acc
             </div>
           </div>
 
-          {/* Szybcy Znajomi */}
+          {/* Znajomi */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
             <div className="bg-zinc-800/50 px-4 py-3 border-b border-zinc-800">
               <h3 className="font-bold text-sm text-zinc-300">Znajomi</h3>
