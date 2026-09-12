@@ -406,7 +406,8 @@ export default function App() {
         {activeTab === 'theory' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
         {activeTab === 'stats' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
 
-        {activeTab === 'account' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Account currentUser={currentUser} elo1v1={elo1v1} friends={friends} handHistory={handHistory} setActiveTab={setActiveTab} /></main>}
+        {/* KONTO */}
+        {activeTab === 'account' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Account currentUser={currentUser} setCurrentUser={setCurrentUser} elo1v1={elo1v1} friends={friends} handHistory={handHistory} setActiveTab={setActiveTab} /></main>}
 
         {activeTab === 'leaderboard' && (
           <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8 items-center">

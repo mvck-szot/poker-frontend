@@ -1,19 +1,28 @@
 import { useState } from 'react';
-import { Settings, History } from 'lucide-react';
+import { Settings, History, XSquare, Save } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AccountProps {
   currentUser: any;
-  elo1v1: number; // Dodaliśmy ELO z App.tsx
+  setCurrentUser: (user: any) => void;
+  elo1v1: number;
   friends: any[];
   handHistory: any[];
   setActiveTab: (tab: any) => void;
 }
 
-export function Account({ currentUser, elo1v1, friends, handHistory, setActiveTab }: AccountProps) {
+export function Account({ currentUser, setCurrentUser, elo1v1, friends, handHistory, setActiveTab }: AccountProps) {
   const [subTab, setSubTab] = useState<'overview' | 'stats' | 'friends' | 'clubs'>('overview');
+
+  // STAN MODALA EDYCJI PROFILU
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editCountry, setEditCountry] = useState('🇵🇱');
+  const [editStatus, setEditStatus] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
   const acceptedFriends = friends.filter(f => f.status === 'accepted');
 
-  // Funkcja obliczająca rangę na podstawie ELO
   const getRank = (elo: number) => {
     if (elo >= 2000) return { name: 'Grandmaster', icon: '👑', color: 'text-yellow-400', bg: 'bg-yellow-400/20', border: 'border-yellow-400/50' };
     if (elo >= 1800) return { name: 'Diament', icon: '🔮', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/20', border: 'border-fuchsia-400/50' };
@@ -23,21 +32,95 @@ export function Account({ currentUser, elo1v1, friends, handHistory, setActiveTa
     return { name: 'Brąz', icon: '🥉', color: 'text-amber-600', bg: 'bg-amber-900/40', border: 'border-amber-700/50' };
   };
 
-  if (!currentUser) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-4">
-        <p>Musisz być zalogowany, aby wyświetlić profil.</p>
-      </div>
-    );
-  }
+  const openEditModal = () => {
+    setEditName(currentUser.display_name || '');
+    setEditCountry(currentUser.country || '🇵🇱');
+    setEditStatus(currentUser.status || '');
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const res = await fetch('https://poker-api-fsle.onrender.com/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser.id,
+          display_name: editName,
+          country: editCountry,
+          status: editStatus
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updatedUser = { ...currentUser, display_name: editName, country: editCountry, status: editStatus };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('poker_user', JSON.stringify(updatedUser)); // Aktualizujemy dane w przeglądarce!
+        setIsEditing(false);
+      } else {
+        alert("Błąd podczas zapisywania danych.");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    setIsSaving(false);
+  };
+
+  if (!currentUser) return <div className="flex justify-center h-full text-zinc-500"><p>Zaloguj się, aby wyświetlić profil.</p></div>;
 
   const myRank = getRank(elo1v1);
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full relative">
+
+      {/* -------------------- MODAL EDYCJI PROFILU -------------------- */}
+      <AnimatePresence>
+        {isEditing && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-900 border border-zinc-800 p-8 rounded-xl w-full max-w-md shadow-2xl relative">
+              <button onClick={() => setIsEditing(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><XSquare className="w-5 h-5"/></button>
+
+              <h3 className="text-xl font-bold text-white mb-6">Edytuj Profil</h3>
+
+              <form onSubmit={handleSaveProfile} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase text-zinc-500">Imię i Nazwisko / Nick</label>
+                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Np. Daniel Negreanu" maxLength={30} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500" />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase text-zinc-500">Kraj (Flaga)</label>
+                  <select value={editCountry} onChange={e => setEditCountry(e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500">
+                    <option value="🇵🇱">🇵🇱 Polska</option>
+                    <option value="🇬🇧">🇬🇧 Wielka Brytania</option>
+                    <option value="🇺🇸">🇺🇸 Stany Zjednoczone</option>
+                    <option value="🇩🇪">🇩🇪 Niemcy</option>
+                    <option value="🇨🇦">🇨🇦 Kanada</option>
+                    <option value="🌎">🌎 Reszta Świata</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase text-zinc-500">Motto / Status</label>
+                  <input type="text" value={editStatus} onChange={e => setEditStatus(e.target.value)} placeholder="Co dzisiaj gramy?" maxLength={50} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500" />
+                  <span className="text-[10px] text-zinc-600 text-right">{editStatus.length}/50</span>
+                </div>
+
+                <button type="submit" disabled={isSaving} className="mt-4 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded transition-colors disabled:opacity-50">
+                  <Save className="w-4 h-4" /> {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* -------------------------------------------------------------- */}
+
       <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 flex flex-col md:flex-row gap-6 md:items-center relative">
         <div className="absolute top-6 right-6">
-          <button className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded font-bold text-xs transition-colors">
+          <button onClick={openEditModal} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded font-bold text-xs transition-colors">
             <Settings className="w-4 h-4" /> Edytuj Profil
           </button>
         </div>
@@ -49,14 +132,22 @@ export function Account({ currentUser, elo1v1, friends, handHistory, setActiveTa
         <div className="flex flex-col">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-black text-white">{currentUser.username}</h1>
-            <span className="text-2xl" title="Polska">🇵🇱</span>
-            {/* ODZNAKA RANGI */}
+
+            {/* DYNAMICZNA FLAGA */}
+            <span className="text-2xl" title="Kraj gracza">{currentUser.country || '🇵🇱'}</span>
+
             <span className={`text-[10px] uppercase font-black px-3 py-1 rounded border ${myRank.bg} ${myRank.color} ${myRank.border} shadow-sm`}>
                {myRank.icon} {myRank.name}
             </span>
           </div>
-          <p className="text-zinc-400 mt-1">Maciej Szot</p>
-          <p className="text-zinc-600 text-sm mt-2 italic">Kliknij, aby ustawić status...</p>
+
+          {/* DYNAMICZNE IMIĘ I STATUS */}
+          <p className="text-zinc-300 font-bold mt-1">{currentUser.display_name || ''}</p>
+          {currentUser.status ? (
+            <p className="text-zinc-400 text-sm mt-1">{currentUser.status}</p>
+          ) : (
+            <p className="text-zinc-600 text-sm mt-2 italic cursor-pointer hover:text-zinc-400" onClick={openEditModal}>Kliknij 'Edytuj Profil', aby ustawić status...</p>
+          )}
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs font-bold text-zinc-500">
             <span>Dołączono: W tym miesiącu</span>
@@ -72,11 +163,11 @@ export function Account({ currentUser, elo1v1, friends, handHistory, setActiveTa
         </div>
       </div>
 
-      <div className="flex gap-6 border-b border-zinc-800 px-2">
-        <button onClick={() => setSubTab('overview')} className={`pb-3 font-bold text-sm transition-colors ${subTab === 'overview' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Przegląd</button>
-        <button onClick={() => setSubTab('stats')} className={`pb-3 font-bold text-sm transition-colors ${subTab === 'stats' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Statystyki</button>
-        <button onClick={() => setSubTab('friends')} className={`pb-3 font-bold text-sm transition-colors ${subTab === 'friends' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Znajomi</button>
-        <button onClick={() => setSubTab('clubs')} className={`pb-3 font-bold text-sm transition-colors ${subTab === 'clubs' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Kluby</button>
+      <div className="flex gap-6 border-b border-zinc-800 px-2 overflow-x-auto shrink-0">
+        <button onClick={() => setSubTab('overview')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'overview' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Przegląd</button>
+        <button onClick={() => setSubTab('stats')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'stats' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Statystyki</button>
+        <button onClick={() => setSubTab('friends')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'friends' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Znajomi</button>
+        <button onClick={() => setSubTab('clubs')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'clubs' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Kluby</button>
       </div>
 
       {subTab === 'overview' && (
@@ -154,7 +245,7 @@ export function Account({ currentUser, elo1v1, friends, handHistory, setActiveTa
               <span className="text-4xl font-black text-white">{handHistory.length}</span>
             </div>
             <div className="md:col-span-2 bg-[#121212] p-6 rounded border border-zinc-800 border-dashed flex items-center justify-center">
-              <span className="text-zinc-500 italic">Czekam na Twoje wytyczne odnośnie wyglądu statystyk! Możemy tu wrzucić wykresy, winrate, cokolwiek zechcesz.</span>
+              <span className="text-zinc-500 italic">Czekam na Twoje wytyczne odnośnie wyglądu statystyk!</span>
             </div>
           </div>
         </div>
@@ -185,7 +276,7 @@ export function Account({ currentUser, elo1v1, friends, handHistory, setActiveTa
         <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-12 flex flex-col items-center justify-center gap-4">
           <span className="text-4xl">🛡️</span>
           <h3 className="font-bold text-lg text-white">Kluby Pokerowe</h3>
-          <p className="text-zinc-500 text-center max-w-md">Moduł klubów (grupy szkoleniowe, tabele wyników dla zamkniętych społeczności) pojawi się w przyszłych aktualizacjach.</p>
+          <p className="text-zinc-500 text-center max-w-md">Moduł klubów pojawi się w przyszłych aktualizacjach.</p>
         </div>
       )}
     </div>
