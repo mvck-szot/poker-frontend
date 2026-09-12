@@ -26,7 +26,12 @@ export default function App() {
   const [authUsername, setAuthUsername] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // ZAPAMIĘTYWANIE SESJI (Krok 1)
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    const savedUser = localStorage.getItem('poker_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   const [activeTab, setActiveTab] = useState<'home' | 'train' | 'stats' | 'theory' | 'arena' | 'friends' | 'duel' | 'leaderboard' | 'account'>('home');
   const [trainMode, setTrainMode] = useState<'random' | 'custom'>('random');
@@ -199,7 +204,11 @@ export default function App() {
     fetch(`https://poker-api-fsle.onrender.com/api/${authMode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: authUsername, password: authPassword }) })
     .then(res => res.json()).then(data => {
       if (data.success) {
-        setCurrentUser({ id: data.id, username: data.username });
+        // ZAPAMIĘTYWANIE SESJI (Krok 2)
+        const userObj = { id: data.id, username: data.username };
+        setCurrentUser(userObj);
+        localStorage.setItem('poker_user', JSON.stringify(userObj));
+
         setEloTrain(data.elo_train); setElo1v1(data.elo_1v1); setElo1v7(data.elo_1v7); setEloHistory([data.elo_train]); setShowAuthModal(false);
       } else { setAuthError(data.message); }
     });
@@ -335,7 +344,6 @@ export default function App() {
   const currentDisplayElo = activeTab === 'arena' || activeTab === 'duel' ? (arenaState === 'playing1v7' ? elo1v7 : elo1v1) : eloTrain;
   const currentRank = getRank(currentDisplayElo);
 
-  // Pobieramy ELO przeciwnika z listy znajomych, żeby wyświetlić jego rangę
   const oppElo = friends.find(f => f.id === duelOpponent?.id)?.elo_1v1 || 1000;
   const heroRank = getRank(elo1v1);
   const oppRank = getRank(oppElo);
@@ -361,13 +369,18 @@ export default function App() {
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold text-zinc-300">Witaj, <span className="text-white">{currentUser.username}</span></span>
 
-              {/* ODZNAKA RANGI W HEADERZE */}
               <motion.span key={activeTab} className="flex items-center gap-2 text-xs bg-zinc-900 px-3 py-1 rounded border border-zinc-700 font-mono">
                 ELO: <span className="text-white font-bold">{currentDisplayElo}</span>
                 <span className={`${currentRank.color} ml-1`} title={currentRank.name}>{currentRank.icon}</span>
               </motion.span>
 
-              <button onClick={() => setCurrentUser(null)} className="text-[10px] uppercase font-bold hover:text-white">Wyloguj</button>
+              {/* Wylogowanie z czyszczeniem sesji (Krok 3) */}
+              <button
+                onClick={() => { localStorage.removeItem('poker_user'); setCurrentUser(null); }}
+                className="text-[10px] uppercase font-bold hover:text-white"
+              >
+                Wyloguj
+              </button>
             </div>
           ) : (<button onClick={() => setShowAuthModal(true)} className="bg-emerald-600 px-4 py-1.5 rounded font-bold text-sm text-white">Zaloguj</button>)}
         </div>
@@ -393,10 +406,8 @@ export default function App() {
         {activeTab === 'theory' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
         {activeTab === 'stats' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
 
-        {/* KONTO */}
         {activeTab === 'account' && <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10"><Account currentUser={currentUser} elo1v1={elo1v1} friends={friends} handHistory={handHistory} setActiveTab={setActiveTab} /></main>}
 
-        {/* RANKING Z ODZNAKAMI */}
         {activeTab === 'leaderboard' && (
           <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8 items-center">
             <div className="flex flex-col items-center gap-2 mb-4">
@@ -429,7 +440,6 @@ export default function App() {
                           {badge && <span>{badge}</span>}
                           {isMe && <span className="text-[10px] uppercase font-black bg-emerald-600 text-white px-2 py-0.5 rounded ml-2">Ty</span>}
 
-                          {/* Odznaka w tabeli */}
                           <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded border ${r.bg} ${r.color} ${r.border} ml-3 hidden md:inline-block`}>
                              {r.icon} {r.name}
                           </span>
@@ -447,7 +457,6 @@ export default function App() {
           </main>
         )}
 
-        {/* ZNAJOMI */}
         {activeTab === 'friends' && (
           <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8">
             <div className="flex flex-col gap-2">
@@ -509,7 +518,6 @@ export default function App() {
           </main>
         )}
 
-        {/* === GTO DUEL Z ODZNAKAMI RANG === */}
         {activeTab === 'duel' && (
           <motion.main animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}} transition={{ duration: 0.4 }} className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col relative">
             <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-6">
@@ -533,10 +541,8 @@ export default function App() {
             {duelState === 'playing' && duelHand && (
                 <div className="flex flex-col gap-8 flex-1 max-w-5xl w-full mx-auto">
 
-                    {/* HUD PASKÓW ŻYCIA Z RANGAMI */}
                     <div className="flex justify-between items-center bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-2xl relative overflow-hidden">
 
-                        {/* HERO HUD */}
                         <div className="flex flex-col w-[40%] z-10">
                             <span className="font-black text-white mb-2 text-lg uppercase tracking-wider flex items-center gap-2">
                               {currentUser.username} <span className="text-zinc-500 text-sm">(TY)</span>
@@ -550,7 +556,6 @@ export default function App() {
 
                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-black text-zinc-800 italic opacity-50 select-none z-0">VS</div>
 
-                        {/* OPPONENT HUD */}
                         <div className="flex flex-col w-[40%] items-end z-10">
                             <span className="font-black text-rose-500 mb-2 text-lg uppercase tracking-wider flex items-center gap-2 justify-end">
                               <span className={`px-2 py-0.5 rounded text-[10px] ${oppRank.bg} ${oppRank.color} border ${oppRank.border}`}>{oppRank.icon} {oppRank.name}</span>
