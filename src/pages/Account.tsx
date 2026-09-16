@@ -1,284 +1,212 @@
 import { useState } from 'react';
-import { Settings, History, XSquare, Save } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { User, CreditCard, Box, Palette, Keyboard, Globe, FlaskConical, ChevronDown, Save } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface AccountProps {
   currentUser: any;
   setCurrentUser: (user: any) => void;
-  elo1v1: number;
-  friends: any[];
-  handHistory: any[];
-  setActiveTab: (tab: any) => void;
 }
 
-export function Account({ currentUser, setCurrentUser, elo1v1, friends, handHistory, setActiveTab }: AccountProps) {
-  const [subTab, setSubTab] = useState<'overview' | 'stats' | 'friends' | 'clubs'>('overview');
+export function Account({ currentUser, setCurrentUser }: AccountProps) {
+  // Nawigacja ustawień
+  const [activeMenu, setActiveMenu] = useState<'account' | 'subscriptions' | 'analyzer' | 'appearance' | 'hotkeys' | 'languages' | 'insider'>('account');
 
-  // STAN MODALA EDYCJI PROFILU
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editCountry, setEditCountry] = useState('🇵🇱');
-  const [editStatus, setEditStatus] = useState('');
+  // Stan dla formularza edycji profilu (bezpośrednio na stronie)
+  const [editName, setEditName] = useState(currentUser?.display_name || '');
+  const [editCountry, setEditCountry] = useState(currentUser?.country || '🇵🇱');
+  const [editStatus, setEditStatus] = useState(currentUser?.status || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
 
-  const acceptedFriends = friends.filter(f => f.status === 'accepted');
-
-  const getRank = (elo: number) => {
-    if (elo >= 2000) return { name: 'Grandmaster', icon: '👑', color: 'text-yellow-400', bg: 'bg-yellow-400/20', border: 'border-yellow-400/50' };
-    if (elo >= 1800) return { name: 'Diament', icon: '🔮', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/20', border: 'border-fuchsia-400/50' };
-    if (elo >= 1600) return { name: 'Platyna', icon: '💎', color: 'text-cyan-400', bg: 'bg-cyan-400/20', border: 'border-cyan-400/50' };
-    if (elo >= 1400) return { name: 'Złoto', icon: '🥇', color: 'text-yellow-500', bg: 'bg-yellow-500/20', border: 'border-yellow-500/50' };
-    if (elo >= 1200) return { name: 'Srebro', icon: '🥈', color: 'text-slate-300', bg: 'bg-slate-300/20', border: 'border-slate-300/50' };
-    return { name: 'Brąz', icon: '🥉', color: 'text-amber-600', bg: 'bg-amber-900/40', border: 'border-amber-700/50' };
-  };
-
-  const openEditModal = () => {
-    setEditName(currentUser.display_name || '');
-    setEditCountry(currentUser.country || '🇵🇱');
-    setEditStatus(currentUser.status || '');
-    setIsEditing(true);
-  };
+  if (!currentUser) return <div className="flex justify-center h-full text-zinc-500"><p>Zaloguj się, aby wyświetlić profil.</p></div>;
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setSaveMsg('');
     try {
       const res = await fetch('https://poker-api-fsle.onrender.com/api/profile/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: currentUser.id,
-          display_name: editName,
-          country: editCountry,
-          status: editStatus
-        })
+        body: JSON.stringify({ user_id: currentUser.id, display_name: editName, country: editCountry, status: editStatus })
       });
       const data = await res.json();
       if (data.success) {
         const updatedUser = { ...currentUser, display_name: editName, country: editCountry, status: editStatus };
         setCurrentUser(updatedUser);
-        localStorage.setItem('poker_user', JSON.stringify(updatedUser)); // Aktualizujemy dane w przeglądarce!
-        setIsEditing(false);
-      } else {
-        alert("Błąd podczas zapisywania danych.");
+        localStorage.setItem('poker_user', JSON.stringify(updatedUser));
+        setSaveMsg('Zapisano pomyślnie!');
+        setTimeout(() => setSaveMsg(''), 3000);
       }
     } catch (error) {
       console.error(error);
+      setSaveMsg('Wystąpił błąd podczas zapisu.');
     }
     setIsSaving(false);
   };
 
-  if (!currentUser) return <div className="flex justify-center h-full text-zinc-500"><p>Zaloguj się, aby wyświetlić profil.</p></div>;
-
-  const myRank = getRank(elo1v1);
+  const menuItems = [
+    { id: 'account', icon: <User className="w-5 h-5" />, label: 'ACCOUNT' },
+    { id: 'subscriptions', icon: <Box className="w-5 h-5" />, label: 'SUBSCRIPTIONS' },
+    { id: 'analyzer', icon: <Settings className="w-5 h-5" />, label: 'ANALYZER' },
+    { id: 'appearance', icon: <Palette className="w-5 h-5" />, label: 'APPEARANCE' },
+    { id: 'hotkeys', icon: <Keyboard className="w-5 h-5" />, label: 'HOTKEYS' },
+    { id: 'languages', icon: <Globe className="w-5 h-5" />, label: 'LANGUAGES' },
+    { id: 'insider', icon: <FlaskConical className="w-5 h-5" />, label: 'INSIDER' },
+  ];
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full relative">
+    <div className="flex flex-col md:flex-row gap-12 w-full max-w-6xl mx-auto text-slate-200 min-h-full">
 
-      {/* -------------------- MODAL EDYCJI PROFILU -------------------- */}
-      <AnimatePresence>
-        {isEditing && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-900 border border-zinc-800 p-8 rounded-xl w-full max-w-md shadow-2xl relative">
-              <button onClick={() => setIsEditing(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><XSquare className="w-5 h-5"/></button>
+      {/* LEWE MENU (SIDEBAR USTAWIEŃ) */}
+      <div className="w-full md:w-56 flex flex-col gap-2 shrink-0 border-b md:border-b-0 md:border-r border-zinc-800 pb-6 md:pb-0 md:pr-6 overflow-x-auto md:overflow-visible">
+        <div className="flex md:flex-col gap-2 min-w-max md:min-w-0">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveMenu(item.id as any)}
+              className={`flex flex-row md:flex-col items-center md:justify-center gap-3 md:gap-2 px-4 py-3 md:py-4 rounded-xl transition-all ${
+                activeMenu === item.id
+                  ? 'text-emerald-400 bg-emerald-950/20'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+              }`}
+            >
+              <div className={activeMenu === item.id ? 'text-emerald-500' : 'text-zinc-600'}>
+                {item.icon}
+              </div>
+              <span className="text-[10px] font-black tracking-widest">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-              <h3 className="text-xl font-bold text-white mb-6">Edytuj Profil</h3>
+      {/* PRAWA STRONA (ZAWARTOŚĆ USTAWIEŃ) */}
+      <div className="flex-1 flex flex-col max-w-3xl">
 
-              <form onSubmit={handleSaveProfile} className="flex flex-col gap-5">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase text-zinc-500">Imię i Nazwisko / Nick</label>
-                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Np. Daniel Negreanu" maxLength={30} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500" />
+        {activeMenu === 'account' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-10">
+
+            {/* Nagłówek Konta */}
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl font-black text-white tracking-tight">Account</h1>
+              <p className="text-zinc-400 text-sm">
+                Need help? Contact us <a href="#" className="text-emerald-500 hover:underline">here</a> or via <a href="mailto:support@pokerhub.com" className="text-emerald-500 hover:underline">support@pokerhub.com</a>
+              </p>
+            </div>
+
+            {/* Sekcja Profilu Publicznego (Zamiast modala) */}
+            <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-16 border-b border-zinc-800 pb-8">
+              <span className="w-32 text-zinc-300 font-bold text-sm shrink-0 mt-2">Public Profile</span>
+              <form onSubmit={handleSaveProfile} className="flex-1 flex flex-col gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Display Name</label>
+                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500 transition-colors" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Country</label>
+                    <select value={editCountry} onChange={e => setEditCountry(e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500 transition-colors">
+                      <option value="🇵🇱">🇵🇱 Poland</option>
+                      <option value="🇬🇧">🇬🇧 United Kingdom</option>
+                      <option value="🇺🇸">🇺🇸 United States</option>
+                      <option value="🇩🇪">🇩🇪 Germany</option>
+                      <option value="🌎">🌎 Rest of World</option>
+                    </select>
+                  </div>
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase text-zinc-500">Kraj (Flaga)</label>
-                  <select value={editCountry} onChange={e => setEditCountry(e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500">
-                    <option value="🇵🇱">🇵🇱 Polska</option>
-                    <option value="🇬🇧">🇬🇧 Wielka Brytania</option>
-                    <option value="🇺🇸">🇺🇸 Stany Zjednoczone</option>
-                    <option value="🇩🇪">🇩🇪 Niemcy</option>
-                    <option value="🇨🇦">🇨🇦 Kanada</option>
-                    <option value="🌎">🌎 Reszta Świata</option>
-                  </select>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Status / Bio</label>
+                  <input type="text" value={editStatus} onChange={e => setEditStatus(e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500 transition-colors" />
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase text-zinc-500">Motto / Status</label>
-                  <input type="text" value={editStatus} onChange={e => setEditStatus(e.target.value)} placeholder="Co dzisiaj gramy?" maxLength={50} className="bg-[#121212] border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-emerald-500" />
-                  <span className="text-[10px] text-zinc-600 text-right">{editStatus.length}/50</span>
+                <div className="flex items-center gap-4 mt-2">
+                  <button type="submit" disabled={isSaving} className="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold px-6 py-2 rounded transition-colors flex items-center gap-2">
+                    <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Profile'}
+                  </button>
+                  {saveMsg && <span className="text-sm font-bold text-emerald-500">{saveMsg}</span>}
                 </div>
-
-                <button type="submit" disabled={isSaving} className="mt-4 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded transition-colors disabled:opacity-50">
-                  <Save className="w-4 h-4" /> {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
-                </button>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-      {/* -------------------------------------------------------------- */}
-
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 flex flex-col md:flex-row gap-6 md:items-center relative">
-        <div className="absolute top-6 right-6">
-          <button onClick={openEditModal} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded font-bold text-xs transition-colors">
-            <Settings className="w-4 h-4" /> Edytuj Profil
-          </button>
-        </div>
-
-        <div className="w-32 h-32 bg-zinc-800 rounded-xl flex items-center justify-center shadow-inner border border-zinc-700/50 shrink-0">
-          <span className="text-6xl opacity-50">♠️</span>
-        </div>
-
-        <div className="flex flex-col">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black text-white">{currentUser.username}</h1>
-
-            {/* DYNAMICZNA FLAGA */}
-            <span className="text-2xl" title="Kraj gracza">{currentUser.country || '🇵🇱'}</span>
-
-            <span className={`text-[10px] uppercase font-black px-3 py-1 rounded border ${myRank.bg} ${myRank.color} ${myRank.border} shadow-sm`}>
-               {myRank.icon} {myRank.name}
-            </span>
-          </div>
-
-          {/* DYNAMICZNE IMIĘ I STATUS */}
-          <p className="text-zinc-300 font-bold mt-1">{currentUser.display_name || ''}</p>
-          {currentUser.status ? (
-            <p className="text-zinc-400 text-sm mt-1">{currentUser.status}</p>
-          ) : (
-            <p className="text-zinc-600 text-sm mt-2 italic cursor-pointer hover:text-zinc-400" onClick={openEditModal}>Kliknij 'Edytuj Profil', aby ustawić status...</p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs font-bold text-zinc-500">
-            <span>Dołączono: W tym miesiącu</span>
-            <div className="w-1 h-1 bg-zinc-700 rounded-full"></div>
-            <span>Znajomi: {acceptedFriends.length}</span>
-            <div className="w-1 h-1 bg-zinc-700 rounded-full"></div>
-            <span>Wyświetlenia: 0</span>
-            <div className="w-1 h-1 bg-zinc-700 rounded-full"></div>
-            <span className="text-emerald-500 flex items-center gap-1">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> Online
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-6 border-b border-zinc-800 px-2 overflow-x-auto shrink-0">
-        <button onClick={() => setSubTab('overview')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'overview' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Przegląd</button>
-        <button onClick={() => setSubTab('stats')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'stats' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Statystyki</button>
-        <button onClick={() => setSubTab('friends')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'friends' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Znajomi</button>
-        <button onClick={() => setSubTab('clubs')} className={`whitespace-nowrap pb-3 font-bold text-sm transition-colors ${subTab === 'clubs' ? 'text-white border-b-2 border-emerald-500' : 'text-zinc-400 hover:text-zinc-200'}`}>Kluby</button>
-      </div>
-
-      {subTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="col-span-1 lg:col-span-2 flex flex-col gap-6">
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-              <div className="bg-zinc-800/50 px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
-                <h3 className="font-bold text-sm text-zinc-300">Gry na żywo (0)</h3>
-              </div>
-              <div className="p-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-zinc-400 text-sm">
-                <span>Nie masz obecnie aktywnych pojedynków GTO Duel.</span>
-                <button onClick={() => setActiveTab('friends')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2 rounded shadow-lg transition-colors">Graj</button>
-              </div>
             </div>
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-              <div className="bg-zinc-800/50 px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
-                <h3 className="font-bold text-sm text-zinc-300">Historia Rozdań ({handHistory.length})</h3>
-              </div>
-              {handHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3 text-zinc-500">
-                  <History className="w-12 h-12 opacity-50" />
-                  <div className="text-center"><p className="font-bold text-zinc-400">Brak historii rozdań</p><p className="text-sm">Ukończone rozdania pojawią się tutaj</p></div>
+
+            {/* Email */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-16 border-b border-zinc-800 pb-8">
+              <span className="w-32 text-zinc-300 font-bold text-sm shrink-0">Email</span>
+              <span className="text-zinc-400 font-mono text-sm">{currentUser.username}@pokerhub.com</span>
+            </div>
+
+            {/* Limity Analizatora (Odwzorowanie ze screena) */}
+            <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-16 border-b border-zinc-800 pb-8">
+              <span className="w-32 text-zinc-300 font-bold text-sm shrink-0">Analyze</span>
+              <div className="flex-1 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white text-lg tracking-wide">Others</span>
+                  <span className="text-white font-bold text-sm tracking-widest">0 / 10</span>
                 </div>
-              ) : (
-                <div className="p-4 flex flex-col gap-2">
-                  {handHistory.slice(0, 3).map((hand, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-[#121212] rounded border border-zinc-800">
-                      <div className="flex items-center gap-3"><span className="text-xs font-mono bg-zinc-800 px-2 py-1 rounded text-zinc-400">{hand.street}</span><span className="font-bold text-white text-sm">{hand.action}</span></div>
-                      <span className={`text-xs font-bold ${hand.isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>{hand.isCorrect ? '+ EV' : '- EV'}</span>
-                    </div>
-                  ))}
-                  <button onClick={() => setSubTab('stats')} className="mt-2 text-xs font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest text-center py-2">Pokaż mini-statystyki</button>
+                <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-zinc-600 h-1.5 rounded-full w-0"></div>
                 </div>
-              )}
-            </div>
-          </div>
-          <div className="col-span-1 flex flex-col gap-6">
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
-              <h3 className="font-bold text-sm text-zinc-300 mb-3">Wygląd stołu</h3>
-              <div className="h-20 bg-emerald-800 rounded flex items-center justify-center border-2 border-zinc-700 shadow-inner relative overflow-hidden">
-                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                 <span className="text-3xl font-black text-emerald-950/40 tracking-widest relative z-10">GTO</span>
+                <span className="text-xs text-zinc-500 flex items-center gap-1">
+                  Hands quota reset on 9/20/2026 <span className="w-4 h-4 rounded-full border border-zinc-500 text-[10px] flex items-center justify-center cursor-help" title="Limit darmowych analiz">i</span>
+                </span>
+                <button className="bg-[#1e1e1e] hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-bold py-2.5 px-4 rounded transition-colors w-fit text-sm">
+                  Get more hands
+                </button>
               </div>
             </div>
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-              <div className="bg-zinc-800/50 px-4 py-3 border-b border-zinc-800"><h3 className="font-bold text-sm text-zinc-300">Szybcy Znajomi</h3></div>
-              <div className="p-4">
-                {acceptedFriends.length === 0 ? (<p className="text-sm text-zinc-500">Brak znajomych.</p>) : (
-                  <div className="flex flex-col gap-3">
-                    {acceptedFriends.slice(0, 5).map(f => (
-                      <div key={f.id} className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-zinc-800 rounded flex items-center justify-center text-xs">👤</div>
-                        <span className="font-bold text-white text-sm">{f.username}</span>
-                        <div className="ml-auto w-2 h-2 bg-zinc-600 rounded-full"></div>
-                      </div>
-                    ))}
-                    <button onClick={() => setSubTab('friends')} className="mt-2 text-xs font-bold text-emerald-500 hover:text-emerald-400 transition-colors uppercase tracking-widest text-left">Pokaż wszystkich</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {subTab === 'stats' && (
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 flex flex-col gap-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg text-white">Mini Statystyki Konta</h3>
-            <button onClick={() => setActiveTab('stats')} className="bg-emerald-600/20 text-emerald-500 border border-emerald-500/50 px-4 py-1.5 rounded text-xs font-bold hover:bg-emerald-600 hover:text-white transition-colors">Pełny Panel GTO</button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-[#121212] p-6 rounded border border-zinc-800 flex flex-col items-center justify-center gap-2">
-              <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Rozegrane Rozdania</span>
-              <span className="text-4xl font-black text-white">{handHistory.length}</span>
+            {/* Discord */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-16 border-b border-zinc-800 pb-8">
+              <span className="w-32 text-zinc-300 font-bold text-sm shrink-0">Discord tag</span>
+              <span className="text-zinc-300 flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                Only for <span className="font-bold underline decoration-zinc-700 underline-offset-4">subscribed users</span> ↗
+              </span>
             </div>
-            <div className="md:col-span-2 bg-[#121212] p-6 rounded border border-zinc-800 border-dashed flex items-center justify-center">
-              <span className="text-zinc-500 italic">Czekam na Twoje wytyczne odnośnie wyglądu statystyk!</span>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {subTab === 'friends' && (
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 flex flex-col gap-4">
-          <h3 className="font-bold text-lg text-white">Twoja lista znajomych</h3>
-          {acceptedFriends.length === 0 ? (
-            <p className="text-zinc-500">Brak znajomych. Użyj głównej zakładki "Znajomi" (po lewej stronie), aby kogoś dodać.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {acceptedFriends.map(f => (
-                <div key={f.id} className="flex justify-between items-center bg-[#121212] p-4 rounded border border-zinc-800">
+            {/* Instalacja */}
+            <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-16">
+              <span className="w-32 text-zinc-300 font-bold text-sm shrink-0">Install</span>
+              <div className="flex-1 flex flex-col gap-4 w-full">
+                <div className="flex items-center justify-between p-4 bg-[#121212] rounded border border-zinc-800 cursor-pointer hover:border-zinc-600 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-sm">👤</div>
-                    <span className="font-bold text-white">{f.username}</span>
+                    <LightbulbIcon className="w-5 h-5 text-emerald-500" />
+                    <span className="text-zinc-300 text-sm">How to install as an app on your phone.</span>
                   </div>
-                  <span className="text-xs font-mono bg-zinc-800 px-3 py-1 rounded-full text-zinc-400">ELO: {f.elo_1v1}</span>
+                  <ChevronDown className="w-5 h-5 text-zinc-600" />
                 </div>
-              ))}
+                <div className="flex items-center justify-between p-4 bg-[#121212] rounded border border-zinc-800 cursor-pointer hover:border-zinc-600 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <LightbulbIcon className="w-5 h-5 text-emerald-500" />
+                    <span className="text-zinc-300 text-sm">How to install as an app on your desktop.</span>
+                  </div>
+                  <ChevronDown className="w-5 h-5 text-zinc-600" />
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {subTab === 'clubs' && (
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-12 flex flex-col items-center justify-center gap-4">
-          <span className="text-4xl">🛡️</span>
-          <h3 className="font-bold text-lg text-white">Kluby Pokerowe</h3>
-          <p className="text-zinc-500 text-center max-w-md">Moduł klubów pojawi się w przyszłych aktualizacjach.</p>
-        </div>
-      )}
+          </motion.div>
+        )}
+
+        {/* Placeholdery dla pozostałych zakładek z menu */}
+        {activeMenu !== 'account' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-20 text-center gap-4">
+            <span className="text-6xl opacity-20">⚙️</span>
+            <h2 className="text-2xl font-black text-white tracking-wide uppercase">{activeMenu}</h2>
+            <p className="text-zinc-500 max-w-sm">
+              Panel konfiguracji dla modułu <span className="font-bold text-zinc-400 uppercase">{activeMenu}</span> pojawi się w kolejnej aktualizacji aplikacji.
+            </p>
+          </motion.div>
+        )}
+      </div>
     </div>
+  );
+}
+
+// Lokalny komponent ikony żarówki (żeby nie psuć importów na górze)
+function LightbulbIcon(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5"/>
+      <path d="M9 18h6"/>
+      <path d="M10 22h4"/>
+    </svg>
   );
 }
