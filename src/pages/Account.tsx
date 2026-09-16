@@ -1,22 +1,40 @@
 import { useState } from 'react';
-import { User, CreditCard, Box, Palette, Keyboard, Globe, FlaskConical, ChevronDown, Save } from 'lucide-react';
+import { User, Box, Palette, Keyboard, Globe, FlaskConical, ChevronDown, Save, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AccountProps {
   currentUser: any;
   setCurrentUser: (user: any) => void;
+  elo1v1: number;
+  friends: any[];
+  // Te dwa są przekazywane z App.tsx, więc musimy je tu zadeklarować, nawet jeśli tymczasowo z nich nie korzystamy
+  handHistory?: any[];
+  setActiveTab?: (tab: any) => void;
 }
 
-export function Account({ currentUser, setCurrentUser }: AccountProps) {
+export function Account({ currentUser, setCurrentUser, elo1v1, friends }: AccountProps) {
   // Nawigacja ustawień
   const [activeMenu, setActiveMenu] = useState<'account' | 'subscriptions' | 'analyzer' | 'appearance' | 'hotkeys' | 'languages' | 'insider'>('account');
 
-  // Stan dla formularza edycji profilu (bezpośrednio na stronie)
+  // Stan dla formularza edycji profilu
   const [editName, setEditName] = useState(currentUser?.display_name || '');
   const [editCountry, setEditCountry] = useState(currentUser?.country || '🇵🇱');
   const [editStatus, setEditStatus] = useState(currentUser?.status || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+
+  // Wczytanie znajomych (żeby aplikacja nie wyrzucała białego ekranu)
+  const acceptedFriends = friends?.filter(f => f.status === 'accepted') || [];
+
+  // Funkcja rang (żeby działała flara z ELO pod nickiem)
+  const getRank = (elo: number) => {
+    if (elo >= 2000) return { name: 'Grandmaster', icon: '👑', color: 'text-yellow-400', bg: 'bg-yellow-400/20', border: 'border-yellow-400/50' };
+    if (elo >= 1800) return { name: 'Diament', icon: '🔮', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/20', border: 'border-fuchsia-400/50' };
+    if (elo >= 1600) return { name: 'Platyna', icon: '💎', color: 'text-cyan-400', bg: 'bg-cyan-400/20', border: 'border-cyan-400/50' };
+    if (elo >= 1400) return { name: 'Złoto', icon: '🥇', color: 'text-yellow-500', bg: 'bg-yellow-500/20', border: 'border-yellow-500/50' };
+    if (elo >= 1200) return { name: 'Srebro', icon: '🥈', color: 'text-slate-300', bg: 'bg-slate-300/20', border: 'border-slate-300/50' };
+    return { name: 'Brąz', icon: '🥉', color: 'text-amber-600', bg: 'bg-amber-900/40', border: 'border-amber-700/50' };
+  };
 
   if (!currentUser) return <div className="flex justify-center h-full text-zinc-500"><p>Zaloguj się, aby wyświetlić profil.</p></div>;
 
@@ -54,6 +72,8 @@ export function Account({ currentUser, setCurrentUser }: AccountProps) {
     { id: 'languages', icon: <Globe className="w-5 h-5" />, label: 'LANGUAGES' },
     { id: 'insider', icon: <FlaskConical className="w-5 h-5" />, label: 'INSIDER' },
   ];
+
+  const myRank = getRank(elo1v1);
 
   return (
     <div className="flex flex-col md:flex-row gap-12 w-full max-w-6xl mx-auto text-slate-200 min-h-full">
@@ -94,7 +114,33 @@ export function Account({ currentUser, setCurrentUser }: AccountProps) {
               </p>
             </div>
 
-            {/* Sekcja Profilu Publicznego (Zamiast modala) */}
+            {/* SEKCJA Z AVATAREM I STATUSEM */}
+            <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+               <div className="w-24 h-24 bg-zinc-800 rounded-xl flex items-center justify-center shadow-inner border border-zinc-700/50 shrink-0">
+                  <span className="text-4xl opacity-50">♠️</span>
+               </div>
+               <div className="flex flex-col">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-black text-white">{currentUser.username}</h2>
+                    <span className="text-xl" title="Kraj gracza">{currentUser.country || '🇵🇱'}</span>
+                    <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded border ${myRank.bg} ${myRank.color} ${myRank.border} shadow-sm`}>
+                      {myRank.icon} {myRank.name}
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 font-bold mt-1">{currentUser.display_name || ''}</p>
+                  {currentUser.status && <p className="text-zinc-400 text-sm mt-1">{currentUser.status}</p>}
+
+                  <div className="flex items-center gap-x-4 mt-3 text-xs font-bold text-zinc-500">
+                    <span>Znajomi: {acceptedFriends.length}</span>
+                    <div className="w-1 h-1 bg-zinc-700 rounded-full"></div>
+                    <span className="text-emerald-500 flex items-center gap-1">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> Online
+                    </span>
+                  </div>
+               </div>
+            </div>
+
+            {/* Sekcja Profilu Publicznego Formularz */}
             <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-16 border-b border-zinc-800 pb-8">
               <span className="w-32 text-zinc-300 font-bold text-sm shrink-0 mt-2">Public Profile</span>
               <form onSubmit={handleSaveProfile} className="flex-1 flex flex-col gap-5">
@@ -133,7 +179,7 @@ export function Account({ currentUser, setCurrentUser }: AccountProps) {
               <span className="text-zinc-400 font-mono text-sm">{currentUser.username}@pokerhub.com</span>
             </div>
 
-            {/* Limity Analizatora (Odwzorowanie ze screena) */}
+            {/* Limity Analizatora */}
             <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-16 border-b border-zinc-800 pb-8">
               <span className="w-32 text-zinc-300 font-bold text-sm shrink-0">Analyze</span>
               <div className="flex-1 flex flex-col gap-4">
@@ -200,7 +246,7 @@ export function Account({ currentUser, setCurrentUser }: AccountProps) {
   );
 }
 
-// Lokalny komponent ikony żarówki (żeby nie psuć importów na górze)
+// Lokalny komponent ikony żarówki
 function LightbulbIcon(props: any) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
