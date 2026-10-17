@@ -5,7 +5,7 @@ interface DashboardProps {
   currentUser: any;
 }
 
-export function Dashboard({ currentUser }: DashboardProps) {
+export function Home({ currentUser }: DashboardProps) {
   // Przykładowe kafelki trybów gry / nauki
   const modules = [
     {
