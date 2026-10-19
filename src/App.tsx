@@ -434,10 +434,17 @@ export default function App() {
       {/* PRAWA STRONA (Główna zawartość) */}
       <div className="flex-1 flex flex-col overflow-hidden relative bg-[#121212]">
 
-        {/* Widok w zależności od stanu zalogowania i zakładki */}
-        {!currentUser ? (
-          <Landing onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }} />
-        ) : (
+      {/* Widok w zależności od stanu zalogowania i zakładki */}
+              {!currentUser ? (
+                activeTab === 'train' ? (
+                  <Train {...trainProps} />
+                ) : (
+                  <Landing
+                    onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                    onStartTraining={() => setActiveTab('train')}
+                  />
+                )
+              ) : (
           <>
             {activeTab === 'home' && <main className="flex-1 overflow-y-auto p-6 lg:p-10"><Home setActiveTab={setActiveTab} /></main>}
             {activeTab === 'theory' && <main className="flex-1 overflow-y-auto p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
