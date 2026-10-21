@@ -1,131 +1,120 @@
 import { useState } from 'react';
-import { BookOpen, Info } from 'lucide-react';
+import { Crosshair, MapTrifold, CaretRight, TrendUp } from '@phosphor-icons/react';
 
 interface TheoryProps {
   activeTheoryPos: string;
   setActiveTheoryPos: (pos: string) => void;
   preflopData: any;
   selectedPreflop: any;
-  setSelectedPreflop: (val: any) => void;
+  setSelectedPreflop: (hand: any) => void;
 }
 
-export function Theory({ activeTheoryPos, setActiveTheoryPos, preflopData }: TheoryProps) {
-  const positions = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-  const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const positions = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
-  // Pobieramy zakres dla aktualnie wybranej pozycji
-  // (Na ten moment backend zwraca tylko UTG i BTN, dla innych dajemy domyślnie pusty)
-  const currentRange = preflopData ? preflopData[activeTheoryPos] || {} : {};
+export const Theory = ({ activeTheoryPos, setActiveTheoryPos, selectedPreflop, setSelectedPreflop }: TheoryProps) => {
+  // Funkcja generująca etykietę ręki (np. AKs, 77, JTo)
+  const getHandLabel = (row: number, col: number) => {
+    if (row === col) return `${ranks[row]}${ranks[col]}`;
+    if (row < col) return `${ranks[row]}${ranks[col]}s`;
+    return `${ranks[col]}${ranks[row]}o`;
+  };
 
-  // Funkcja przypisująca kolory
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'R': return 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.3)]'; // Raise
-      case 'C': return 'bg-emerald-500 text-white'; // Call
-      case 'F': return 'bg-zinc-800 text-zinc-500 opacity-50'; // Fold
-      default: return 'bg-zinc-900 border-zinc-800 text-zinc-600'; // Brak danych
-    }
+  // Symulacja danych z solvera dla celów UI (docelowo zastąpisz to danymi z API)
+  const getCellColor = (row: number, col: number) => {
+    const isPremium = row < 4 && col < 4;
+    const isPlayable = row < 8 && col < 8;
+
+    if (isPremium) return 'bg-rose-500/80 hover:bg-rose-400 text-white font-bold'; // Raise
+    if (isPlayable && row !== col) return 'bg-emerald-500/80 hover:bg-emerald-400 text-white font-bold'; // Call/Mix
+    return 'bg-zinc-900 hover:bg-zinc-700 text-zinc-500'; // Fold
   };
 
   return (
-    <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full h-full text-slate-200">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 text-zinc-200">
 
-      {/* Nagłówek i Nawigacja */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-[#1a1c23] p-4 rounded-xl border border-zinc-800 shadow-md gap-4">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <BookOpen className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-bold text-white tracking-wide">Preflop Charts</h2>
-        </div>
-
-        {/* Wybór Pozycji */}
-        <div className="flex gap-2 overflow-x-auto w-full md:w-auto bg-zinc-900/50 p-1 rounded-lg border border-zinc-800">
-          {positions.map(pos => (
-            <button
-              key={pos}
-              onClick={() => setActiveTheoryPos(pos)}
-              className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded transition-all ${
-                activeTheoryPos === pos
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
-              }`}
-            >
-              {pos}
-            </button>
-          ))}
+      {/* Nagłówek */}
+      <div className="flex justify-between items-end border-b border-zinc-800 pb-4 mt-2">
+        <div className="flex items-center gap-3">
+          <MapTrifold size={28} weight="duotone" className="text-emerald-500" />
+          <h1 className="text-xl font-bold">Preflop Charts</h1>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-        {/* Główna Siatka 13x13 (Grid) */}
-        <div className="bg-[#1a1c23] p-6 rounded-xl border border-zinc-800 shadow-2xl overflow-x-auto w-full lg:w-auto">
-          <div className="min-w-[600px]">
-            {ranks.map((r1, i) => (
-              <div key={r1} className="flex">
-                {ranks.map((r2, j) => {
-                  let handStr = '';
-                  if (i === j) {
-                    handStr = `${r1}${r2}`; // Pary (AA)
-                  } else if (i < j) {
-                    handStr = `${r1}${r2}s`; // Suited (AKs) - wyższa karta zawsze pierwsza (r1)
-                  } else {
-                    handStr = `${r2}${r1}o`; // Offsuit (AKo) - wyższa karta zawsze pierwsza (r2)
-                  }
+        {/* Panel boczny - Kontrolki */}
+        <div className="lg:col-span-1 flex flex-col gap-6">
 
-                  const action = currentRange[handStr] || 'F';
-                  const colorClass = getActionColor(action);
+          <div className="bg-[#161616] border border-zinc-800/60 rounded-md p-4 flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 mb-2">
+              <Crosshair size={18} weight="bold" className="text-zinc-500" />
+              Wybierz Pozycję
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {positions.map(pos => (
+                <button
+                  key={pos}
+                  onClick={() => setActiveTheoryPos(pos)}
+                  className={`py-2 text-xs font-bold rounded border transition-colors ${
+                    activeTheoryPos === pos
+                      ? 'bg-zinc-200 text-zinc-900 border-zinc-200'
+                      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                  }`}
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+          </div>
 
+          <div className="bg-[#161616] border border-zinc-800/60 rounded-md p-4 flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 mb-2">
+              <TrendUp size={18} weight="bold" className="text-zinc-500" />
+              Legenda Akcji
+            </div>
+            <div className="flex flex-col gap-2 text-xs font-bold">
+              <div className="flex items-center justify-between bg-zinc-900 p-2 rounded border border-zinc-800">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-rose-500 rounded-sm"></div> Raise</div>
+                <span className="text-zinc-500">100%</span>
+              </div>
+              <div className="flex items-center justify-between bg-zinc-900 p-2 rounded border border-zinc-800">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> Call</div>
+                <span className="text-zinc-500">100%</span>
+              </div>
+              <div className="flex items-center justify-between bg-zinc-900 p-2 rounded border border-zinc-800">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-zinc-700 rounded-sm"></div> Fold</div>
+                <span className="text-zinc-500">0%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Siatka 13x13 (Hand Matrix) */}
+        <div className="lg:col-span-3 flex justify-center items-start">
+          <div className="bg-[#161616] border border-zinc-800/60 p-4 rounded-md overflow-x-auto w-full">
+            <div className="grid grid-cols-13 gap-[1px] bg-zinc-800/50 p-[1px] rounded shrink-0 min-w-[600px]">
+              {ranks.map((_, row) =>
+                ranks.map((_, col) => {
+                  const hand = getHandLabel(row, col);
                   return (
                     <div
-                      key={handStr}
-                      className={`w-12 h-12 m-[1px] rounded border border-black/20 flex items-center justify-center font-bold text-[11px] cursor-pointer hover:ring-2 ring-white transition-all ${colorClass}`}
-                      title={`${handStr} - ${action === 'R' ? 'Raise' : action === 'C' ? 'Call' : 'Fold'}`}
+                      key={hand}
+                      onMouseEnter={() => setSelectedPreflop(hand)}
+                      className={`aspect-square flex items-center justify-center text-[10px] sm:text-xs cursor-pointer transition-colors ${getCellColor(row, col)}`}
+                      style={{ gridColumn: col + 1, gridRow: row + 1 }}
                     >
-                      {handStr}
+                      {hand}
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                  )
+                })
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Panel boczny (Legenda i info) */}
-        <div className="flex flex-col gap-6 w-full lg:w-80">
-
-          <div className="bg-[#1a1c23] p-6 rounded-xl border border-zinc-800">
-            <h3 className="font-bold text-white mb-4 uppercase tracking-widest text-xs text-zinc-500">Legenda</h3>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]"></div>
-                <span className="font-bold text-sm text-white">Raise (Open)</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded bg-emerald-500"></div>
-                <span className="font-bold text-sm text-white">Call (Limp)</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700"></div>
-                <span className="font-bold text-sm text-zinc-400">Fold</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-blue-900/20 p-6 rounded-xl border border-blue-900/50 flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-blue-400 font-bold mb-2">
-              <Info className="w-5 h-5" />
-              Informacja
-            </div>
-            <p className="text-sm text-blue-200/70 leading-relaxed">
-              Obecnie wyświetlasz zakres dla pozycji <span className="text-white font-black">{activeTheoryPos}</span>.
-              {activeTheoryPos === 'UTG' && " UTG (Under The Gun) to pozycja otwierająca. Graj tylko najsilniejsze układy."}
-              {activeTheoryPos === 'BTN' && " BTN (Button) to najlepsza pozycja przy stole. Możesz otwierać bardzo szeroko, aby kraść blindy."}
-              {!['UTG', 'BTN'].includes(activeTheoryPos) && " Baza danych GTO dla tej pozycji jest w trakcie przeliczania."}
-            </p>
-          </div>
-
-        </div>
       </div>
     </div>
   );
-}
+};
