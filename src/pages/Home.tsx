@@ -1,113 +1,88 @@
-import { motion } from 'framer-motion';
-import { Swords, Users, Grid, Dices, ChevronRight } from 'lucide-react';
+import { Play, Swords, Wrench, BookOpen, BarChart2, ChevronRight } from 'lucide-react';
 
-interface DashboardProps {
-  currentUser: any;
-}
-
-export function Home({ currentUser }: DashboardProps) {
-  // Przykładowe kafelki trybów gry / nauki
-  const modules = [
-    {
-      id: 'duel',
-      title: 'GTO Duel (1v1)',
-      description: 'Zaufaj matematyce. Zmierz się z oponentem w formacie Heads-Up opartym na CFR.',
-      icon: <Swords className="w-6 h-6 text-emerald-400" />,
-      bg: 'bg-emerald-950/20',
-      border: 'border-emerald-500/30',
-      hover: 'hover:border-emerald-500',
-    },
-    {
-      id: 'arena',
-      title: 'Arena (1v7)',
-      description: 'Wieloosobowy stół treningowy. Sprawdź swoje decyzje w pulach multi-way.',
-      icon: <Users className="w-6 h-6 text-blue-400" />,
-      bg: 'bg-blue-950/20',
-      border: 'border-blue-500/30',
-      hover: 'hover:border-blue-500',
-    },
-    {
-      id: 'preflop',
-      title: 'Preflop Charts',
-      description: 'Przeglądaj optymalne zasięgi otwarć, 3-betów i obrony dla każdej pozycji.',
-      icon: <Grid className="w-6 h-6 text-purple-400" />,
-      bg: 'bg-purple-950/20',
-      border: 'border-purple-500/30',
-      hover: 'hover:border-purple-500',
-    },
-    {
-      id: 'custom',
-      title: 'Custom Board',
-      description: 'Zbuduj własne rozdanie od zera i pozwól silnikowi przeanalizować spot.',
-      icon: <Dices className="w-6 h-6 text-amber-400" />,
-      bg: 'bg-amber-950/20',
-      border: 'border-amber-500/30',
-      hover: 'hover:border-amber-500',
-    }
-  ];
+export const Home = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) => {
+  // Pobieranie danych użytkownika z localStorage dla szybkiego dostępu na pulpicie
+  const user = JSON.parse(localStorage.getItem('poker_user') || '{}');
 
   return (
-    <div className="flex flex-col w-full max-w-6xl mx-auto text-slate-200 min-h-full p-4 md:p-8">
+    <div className="max-w-5xl mx-auto flex flex-col gap-8 w-full">
 
-      {/* Nagłówek powitalny */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-12 border-b border-zinc-800 pb-8"
-      >
-        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2">
-          Welcome back, {currentUser?.display_name || currentUser?.username || 'Player'}.
-        </h1>
-        <p className="text-zinc-400">
-          Wybierz tryb treningu i poprawiaj swoją strategię każdego dnia.
-        </p>
-      </motion.div>
-
-      {/* Siatka głównych modułów (Kafelki) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {modules.map((mod, index) => (
-          <motion.div
-            key={mod.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.1 }}
-            className={`group flex flex-col justify-between p-6 rounded-2xl bg-[#121212] border ${mod.border} ${mod.hover} transition-all cursor-pointer shadow-lg shadow-black/50`}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`p-3 rounded-xl ${mod.bg}`}>
-                {mod.icon}
-              </div>
-              <div className="w-8 h-8 rounded-full bg-zinc-900/50 flex items-center justify-center border border-zinc-800 group-hover:bg-zinc-800 transition-colors">
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">{mod.title}</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                {mod.description}
-              </p>
-            </div>
-          </motion.div>
-        ))}
+      {/* Nagłówek */}
+      <div className="flex justify-between items-end border-b border-zinc-800 pb-6 mt-2">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight">
+            Witaj, {user.username || 'Graczu'}.
+          </h1>
+          <p className="text-zinc-400 mt-1 text-sm">Twój panel dowodzenia i podsumowanie sesji.</p>
+        </div>
       </div>
 
-      {/* Szybkie podsumowanie pod kafelkami (opcjonalnie) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-zinc-900 to-[#121212] border border-zinc-800 flex items-center justify-between"
-      >
-        <div>
-          <h4 className="text-zinc-300 font-bold mb-1">Twój obecny ranking (ELO)</h4>
-          <div className="text-3xl font-black text-emerald-400">1450 <span className="text-sm font-normal text-zinc-500 uppercase tracking-widest ml-1">Silver</span></div>
+      {/* Główny moduł - Quick Start */}
+      <div className="w-full bg-emerald-900/10 border border-emerald-500/20 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+        <div className="flex flex-col gap-3 z-10">
+          <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-widest mb-1">
+            <Play className="w-3 h-3" /> Rekomendowane na dziś
+          </div>
+          <h2 className="text-3xl font-black text-white leading-tight">Szybki Trening GTO</h2>
+          <p className="text-zinc-400 max-w-md text-sm leading-relaxed">
+            Rozegraj losowe scenariusze przeciwko silnikowi CFR. Popraw swoją strategię preflop i postflop podejmując matematycznie optymalne decyzje.
+          </p>
         </div>
-        <button className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg transition-colors border border-zinc-700">
-          Zobacz statystyki
+
+        <button
+          onClick={() => setActiveTab('train')}
+          className="z-10 w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+        >
+          Rozpocznij Trening
         </button>
-      </motion.div>
+      </div>
+
+      {/* Siatka nawigacyjna - Surowy, analityczny styl */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button onClick={() => setActiveTab('arena')} className="group flex flex-col bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 p-6 rounded-xl transition-all text-left relative overflow-hidden">
+          <div className="p-3 bg-zinc-950 rounded-lg w-fit border border-zinc-800 mb-4 group-hover:border-zinc-600 transition-colors">
+            <Swords className="w-5 h-5 text-zinc-300" />
+          </div>
+          <h3 className="text-lg font-bold text-zinc-100 mb-1">Arena 1v1 & 1v7</h3>
+          <p className="text-xs text-zinc-500">Rywalizuj z botami o punkty ELO.</p>
+          <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-700 group-hover:text-white transition-colors" />
+        </button>
+
+        <button onClick={() => setActiveTab('theory')} className="group flex flex-col bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 p-6 rounded-xl transition-all text-left relative overflow-hidden">
+          <div className="p-3 bg-zinc-950 rounded-lg w-fit border border-zinc-800 mb-4 group-hover:border-zinc-600 transition-colors">
+            <BookOpen className="w-5 h-5 text-zinc-300" />
+          </div>
+          <h3 className="text-lg font-bold text-zinc-100 mb-1">Preflop Charts</h3>
+          <p className="text-xs text-zinc-500">Analizuj tabele otwarć i zasięgi.</p>
+          <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-700 group-hover:text-white transition-colors" />
+        </button>
+
+        <button onClick={() => setActiveTab('stats')} className="group flex flex-col bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 p-6 rounded-xl transition-all text-left relative overflow-hidden">
+          <div className="p-3 bg-zinc-950 rounded-lg w-fit border border-zinc-800 mb-4 group-hover:border-zinc-600 transition-colors">
+            <BarChart2 className="w-5 h-5 text-zinc-300" />
+          </div>
+          <h3 className="text-lg font-bold text-zinc-100 mb-1">Twoje Statystyki</h3>
+          <p className="text-xs text-zinc-500">Historia rozdań i wykres ELO.</p>
+          <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-700 group-hover:text-white transition-colors" />
+        </button>
+      </div>
+
+      {/* Dolny moduł - Skrót do Custom Board */}
+      <div className="w-full bg-[#161616] border border-zinc-800 p-6 rounded-xl flex justify-between items-center group cursor-pointer hover:border-zinc-700 transition-colors" onClick={() => setActiveTab('train')}>
+         <div className="flex items-center gap-4">
+            <div className="p-3 bg-zinc-900 rounded-lg border border-zinc-800">
+              <Wrench className="w-5 h-5 text-zinc-400" />
+            </div>
+            <div>
+              <h4 className="text-zinc-200 font-bold text-sm">Kreator Custom Board</h4>
+              <p className="text-zinc-500 text-xs mt-0.5">Skonfiguruj własny scenariusz i przeanalizuj go w silniku.</p>
+            </div>
+         </div>
+         <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-zinc-300 transition-colors" />
+      </div>
 
     </div>
   );
-}
+};
