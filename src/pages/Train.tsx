@@ -1,4 +1,5 @@
-import { Loader2, Terminal, Copy, Check, RotateCcw, Wrench, Trash2, Sparkles, XSquare } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, Terminal, Copy, Check, RotateCcw, Wrench, Trash2, Sparkles, XSquare, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PokerCard, EmptyCardSlot } from '../components/PokerCard';
 import { parseScenario } from '../utils/poker';
@@ -11,12 +12,22 @@ export const Train = (props: any) => {
     trainMode, showCustomBuilder, isSolving, currentHand, feedback, currentStrategy,
     handleAction, exportReport, isCopied, actionLogs, customHero, customBoard,
     customPosition, setCustomPosition, customHistory, setCustomHistory, toggleCustomCard,
-    clearCustomBuilder, analyzeCustom, isCustomValid, loadNewRandomHand
+    clearCustomBuilder, analyzeCustom, isCustomValid, loadNewRandomHand,
+    currentUser,   // Nowy prop do sprawdzania logowania
+    onLoginClick   // Nowy prop do wywoływania modalu
   } = props;
 
+  const [guestHandsCount, setGuestHandsCount] = useState(0);
+  const isLocked = !currentUser && guestHandsCount >= 5;
   const gameData = currentHand ? parseScenario(currentHand) : null;
 
-  // Stół do trybu Custom Board (wybór pozycji)
+  const onActionClick = (idx: number, actionName: string) => {
+    handleAction(idx, actionName);
+    if (!currentUser) {
+      setGuestHandsCount(prev => prev + 1);
+    }
+  };
+
   const renderCustomTable = () => {
     const seats = [
       { id: 'UTG', style: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2' },
@@ -40,7 +51,6 @@ export const Train = (props: any) => {
     );
   };
 
-  // Stół GTO Wizard (Losowe rozdania)
   const renderOvalTable = () => {
     const seats = [
       { id: 'UTG', style: 'top-[5%] left-[25%] -translate-x-1/2 -translate-y-1/2', cardsPos: 'left-[120%]' },
@@ -53,8 +63,6 @@ export const Train = (props: any) => {
 
     return (
       <div className="relative w-full max-w-4xl mx-auto aspect-[2.3/1] border-[3px] border-[#2a2a2a] rounded-[100%] flex flex-col items-center justify-center my-16 bg-[#161616] shadow-2xl">
-
-        {/* CENTER INFO */}
         {gameData && !isSolving && (
           <div className="flex flex-col items-center justify-center relative z-20">
             <span className="text-[#888] font-bold text-sm mb-1 tracking-wide">
@@ -80,7 +88,6 @@ export const Train = (props: any) => {
           </div>
         )}
 
-        {/* POZYCJE GRACZY */}
         {seats.map(seat => {
           const isHero = gameData && gameData.position === seat.id;
           const isVillain = gameData && gameData.villainPos === seat.id;
@@ -97,12 +104,10 @@ export const Train = (props: any) => {
           return (
             <div key={seat.id} className={`absolute ${seat.style} flex items-center justify-center`}>
               {seat.id === 'BTN' && <div className="absolute -left-3 -top-1 w-4 h-4 bg-white text-black text-[9px] font-black rounded-full flex items-center justify-center border border-zinc-400 z-50">D</div>}
-
               <div className={`w-14 h-14 sm:w-[68px] sm:h-[68px] rounded-full flex flex-col items-center justify-center transition-all ${ringClass}`}>
                 <span className={isHero ? 'text-white font-bold text-sm' : hasFolded ? 'text-zinc-600 font-bold text-xs' : 'text-zinc-400 font-bold text-xs'}>{seat.id}</span>
                 <span className={isHero ? 'text-white text-xs' : hasFolded ? 'hidden' : 'text-zinc-500 text-[10px]'}>{stackValue}</span>
               </div>
-
               {isHero && gameData.hand.length === 2 && !isSolving && (
                 <div className={`absolute top-1/2 -translate-y-1/2 ${seat.cardsPos} flex -space-x-2 z-50`}>
                   <PokerCard card={gameData.hand[0]} size="large" index={0} />
@@ -119,7 +124,6 @@ export const Train = (props: any) => {
   return (
     <>
       <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 relative flex flex-col">
-        {/* WIDOK CUSTOM BUILDERA */}
         {trainMode === 'custom' && showCustomBuilder && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto flex flex-col gap-8 w-full">
             <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
@@ -193,7 +197,6 @@ export const Train = (props: any) => {
           </motion.div>
         )}
 
-        {/* WIDOK GŁÓWNY TRENINGU (Z owalnym stołem i dynamicznymi przyciskami) */}
         {!showCustomBuilder && (
            <div className="flex-1 flex flex-col items-center justify-between w-full max-w-5xl mx-auto pb-4">
 
@@ -201,23 +204,21 @@ export const Train = (props: any) => {
                 {renderOvalTable()}
               </div>
 
-              {/* DYNAMICZNE PRZYCISKI GTO WIZARD */}
               <div className="w-full flex gap-3 mb-6">
-                <button disabled={!currentStrategy || feedback.type !== null} onClick={() => handleAction(0, 'FOLD')} className="flex-1 py-5 bg-[#4582c3] hover:bg-[#3b70a8] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
+                <button disabled={!currentStrategy || feedback.type !== null || isLocked} onClick={() => onActionClick(0, 'FOLD')} className="flex-1 py-5 bg-[#4582c3] hover:bg-[#3b70a8] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
                   FOLD
                 </button>
-                <button disabled={!currentStrategy || feedback.type !== null} onClick={() => handleAction(1, gameData?.toCall === "0.0" ? 'CHECK' : 'CALL')} className="flex-1 py-5 bg-[#64b96b] hover:bg-[#539d59] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
+                <button disabled={!currentStrategy || feedback.type !== null || isLocked} onClick={() => onActionClick(1, gameData?.toCall === "0.0" ? 'CHECK' : 'CALL')} className="flex-1 py-5 bg-[#64b96b] hover:bg-[#539d59] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
                   {gameData?.toCall === "0.0" ? 'CHECK' : 'CALL'}
                 </button>
-                <button disabled={!currentStrategy || feedback.type !== null} onClick={() => handleAction(2, gameData?.toCall === "0.0" ? 'BET 33%' : 'RAISE 33%')} className="flex-1 py-5 bg-[#ef4c4a] hover:bg-[#d44140] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
+                <button disabled={!currentStrategy || feedback.type !== null || isLocked} onClick={() => onActionClick(2, gameData?.toCall === "0.0" ? 'BET 33%' : 'RAISE 33%')} className="flex-1 py-5 bg-[#ef4c4a] hover:bg-[#d44140] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
                   {gameData?.toCall === "0.0" ? 'BET 33%' : 'RAISE 33%'}
                 </button>
-                <button disabled={!currentStrategy || feedback.type !== null} onClick={() => handleAction(3, gameData?.toCall === "0.0" ? 'BET 75%' : 'RAISE 75%')} className="flex-1 py-5 bg-[#c22a28] hover:bg-[#a62221] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
+                <button disabled={!currentStrategy || feedback.type !== null || isLocked} onClick={() => onActionClick(3, gameData?.toCall === "0.0" ? 'BET 75%' : 'RAISE 75%')} className="flex-1 py-5 bg-[#c22a28] hover:bg-[#a62221] text-white rounded-sm font-bold tracking-wider transition-colors disabled:opacity-30">
                   {gameData?.toCall === "0.0" ? 'BET 75%' : 'RAISE 75%'}
                 </button>
               </div>
 
-              {/* FEEDBACK I LOGI */}
               <div className="w-full flex gap-4">
                 {feedback.msg ? (
                   <div className={`flex-1 flex items-center justify-center rounded-sm border font-bold text-sm ${feedback.type === 'success' ? 'bg-[#1a2b29] text-emerald-400 border-[#028b7e]' : 'bg-[#2b1a1a] text-rose-400 border-rose-800'}`}>
@@ -245,6 +246,21 @@ export const Train = (props: any) => {
               </div>
            </div>
         )}
+
+        <AnimatePresence>
+          {isLocked && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#121212]/90 backdrop-blur-md p-8 text-center border-4 border-emerald-500/20">
+              <Lock className="w-16 h-16 text-emerald-500 mb-6" />
+              <h3 className="text-3xl lg:text-4xl font-black text-white mb-4">Trening Zablokowany</h3>
+              <p className="text-lg text-zinc-400 mb-8 max-w-lg">
+                Rozegrałeś 5 darmowych rozdań demonstracyjnych. Załóż konto, aby uzyskać nielimitowany dostęp do silnika GTO i analizatora rozdań.
+              </p>
+              <button onClick={onLoginClick} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-10 py-4 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-105 transition-all text-xl">
+                Zarejestruj się za darmo
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </>
   );

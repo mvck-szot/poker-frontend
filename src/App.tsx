@@ -437,7 +437,7 @@ export default function App() {
       {/* Widok w zależności od stanu zalogowania i zakładki */}
               {!currentUser ? (
                 activeTab === 'train' ? (
-                  <Train {...trainProps} />
+                  <Train {...trainProps} currentUser={currentUser} onLoginClick={() => { setAuthMode('register'); setShowAuthModal(true); }} />
                 ) : (
                   <Landing
                     onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
@@ -667,7 +667,7 @@ export default function App() {
             )}
 
             {activeTab === 'arena' && <Arena {...arenaProps} />}
-            {activeTab === 'train' && <Train {...trainProps} />}
+            {activeTab === 'train' && <Train {...trainProps} currentUser={currentUser} />}
           </>
         )}
       </div>
