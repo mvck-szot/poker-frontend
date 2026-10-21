@@ -10,6 +10,7 @@ import { Arena } from './pages/Arena';
 import { Train } from './pages/Train';
 import { Account } from './pages/Account';
 import { Landing } from './pages/Landing'; // Pamiętaj o tym imporcie!
+import { AuthModal } from './components/AuthModal';
 
 // --- SYSTEM RANG ---
 export const getRank = (elo: number) => {
@@ -672,23 +673,24 @@ export default function App() {
         )}
       </div>
 
-      {/* MODAL AUTORYZACJI (BEZ ZMIAN) */}
-      <AnimatePresence>
-        {showAuthModal && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#121212] border border-zinc-800 p-8 rounded w-full max-w-sm flex flex-col gap-6 shadow-2xl">
-              <div className="flex justify-between items-center"><h3 className="text-xl font-bold text-white">{authMode === 'login' ? 'Logowanie' : 'Rejestracja'}</h3><button onClick={() => setShowAuthModal(false)} className="text-zinc-500 hover:text-white"><XSquare className="w-5 h-5"/></button></div>
-              <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1"><label className="text-[10px] font-bold uppercase text-zinc-500">Nazwa Użytkownika</label><input type="text" value={authUsername} onChange={e => setAuthUsername(e.target.value)} required className="bg-zinc-900 border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-blue-500" /></div>
-                <div className="flex flex-col gap-1"><label className="text-[10px] font-bold uppercase text-zinc-500">Hasło</label><input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required className="bg-zinc-900 border border-zinc-700 rounded px-4 py-2 text-white outline-none focus:border-blue-500" /></div>
-                {authError && <span className="text-xs text-rose-500 font-bold">{authError}</span>}
-                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded mt-2">{authMode === 'login' ? 'Zaloguj się' : 'Utwórz konto'}</button>
-              </form>
-              <div className="text-center text-xs text-zinc-500">{authMode === 'login' ? 'Nie masz konta? ' : 'Masz już konto? '}<button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-emerald-500 font-bold hover:underline">{authMode === 'login' ? 'Zarejestruj się' : 'Zaloguj się'}</button></div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* NOWY MODAL AUTORYZACJI */}
+            <AnimatePresence>
+              {showAuthModal && (
+                <AuthModal
+                  initialMode={authMode}
+                  onClose={() => setShowAuthModal(false)}
+                  onSuccess={(user) => {
+                    setCurrentUser({ id: user.id, username: user.username });
+                    localStorage.setItem('poker_user', JSON.stringify({ id: user.id, username: user.username }));
+                    setEloTrain(user.elo_train);
+                    setElo1v1(user.elo_1v1);
+                    setElo1v7(user.elo_1v7);
+                    setEloHistory([user.elo_train]);
+                    setShowAuthModal(false);
+                  }}
+                />
+              )}
+            </AnimatePresence>
     </div>
   );
 }
