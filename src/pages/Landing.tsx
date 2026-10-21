@@ -3,12 +3,11 @@ import { motion } from 'framer-motion';
 
 interface LandingProps {
   onLoginClick: () => void;
-  onStartTraining: () => void; // Nowa funkcja przełączająca do głównego Treningu
+  onStartTraining: () => void;
 }
 
 export function Landing({ onLoginClick, onStartTraining }: LandingProps) {
 
-  // Animacja pływania (jak w Chess.com)
   const floatingAnim = (delay: number) => ({
     y: [0, -15, 0],
     transition: { duration: 4, repeat: Infinity, ease: "easeInOut", delay }
@@ -17,13 +16,10 @@ export function Landing({ onLoginClick, onStartTraining }: LandingProps) {
   return (
     <div className="flex-1 overflow-y-auto bg-[#121212] scroll-smooth">
 
-      {/* =========================================
-          SEKCJA 1: EKRAN GŁÓWNY ZE STOŁEM
-          ========================================= */}
+      {/* SEKCJA 1: EKRAN GŁÓWNY ZE STOŁEM */}
       <div className="min-h-screen flex items-center justify-center p-8 border-b border-zinc-800/50">
         <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
 
-          {/* Lewa: Stół Pokerowy */}
           <div className="aspect-square bg-zinc-900/50 border border-zinc-800 rounded-3xl flex items-center justify-center shadow-2xl relative overflow-hidden backdrop-blur-sm">
             <div className="text-zinc-500 flex flex-col items-center p-8 text-center">
               <div className="text-7xl mb-6 tracking-widest text-zinc-700">♠️ ♥️ ♣️ ♦️</div>
@@ -32,7 +28,6 @@ export function Landing({ onLoginClick, onStartTraining }: LandingProps) {
             </div>
           </div>
 
-          {/* Prawa: Tekst Hero */}
           <div className="flex flex-col items-start text-left z-10">
             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-900/30 border border-emerald-500/30 rounded-full text-emerald-400 text-xs font-black uppercase tracking-widest mb-6">
               <Swords className="w-4 h-4" /> PokerHub 2026
@@ -46,22 +41,19 @@ export function Landing({ onLoginClick, onStartTraining }: LandingProps) {
               Graj z silnikiem i podejmuj idealne decyzje.
             </p>
             <button
-              onClick={() => document.getElementById('zadania-sekcja')?.scrollIntoView({ behavior: 'smooth' })}
-              className="px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-white text-xl font-black rounded-xl shadow-lg shadow-emerald-900/20 hover:scale-105 transition-all duration-200"
+              onClick={onLoginClick}
+              className="px-12 py-5 bg-emerald-500 hover:bg-emerald-400 text-white text-xl font-black rounded-xl shadow-lg shadow-emerald-900/20 hover:scale-105 transition-all duration-200"
             >
-              Rozwiąż Darmowe Zadania
+              Zacznij
             </button>
           </div>
         </div>
       </div>
 
-      {/* =========================================
-          SEKCJA 2: BRAMA DO PRAWDZIWEGO TRENINGU
-          ========================================= */}
+      {/* SEKCJA 2: BRAMA DO PRAWDZIWEGO TRENINGU */}
       <div id="zadania-sekcja" className="min-h-screen flex items-center justify-center p-8 relative overflow-hidden">
         <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-          {/* Lewa strona: Tekst i przycisk kierujący do App.tsx -> Train.tsx */}
           <div className="flex flex-col text-left relative z-10">
             <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-6">
               Popraw swoją grę <br /> z interaktywnym treningiem
@@ -78,7 +70,6 @@ export function Landing({ onLoginClick, onStartTraining }: LandingProps) {
             </button>
           </div>
 
-          {/* Prawa strona: Lewitująca grafika (jak na chess.com) */}
           <div className="relative aspect-square flex items-center justify-center w-full max-w-md mx-auto">
             <div className="absolute inset-0 bg-emerald-500/10 blur-[100px] rounded-full"></div>
 
