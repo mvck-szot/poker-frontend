@@ -1,15 +1,15 @@
-import { Target, Swords, Wrench, BookOpen, BarChart2, Trophy, ChevronRight } from 'lucide-react';
+import { Target, Sword, Wrench, BookOpen, ChartBar, Trophy, CaretRight } from '@phosphor-icons/react';
 
 export const Home = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) => {
   const user = JSON.parse(localStorage.getItem('poker_user') || '{}');
 
   const navItems = [
-    { id: 'train', icon: <Target className="w-5 h-5 text-emerald-500" />, title: 'Szybki Trening', desc: 'Graj przeciwko optymalnemu GTO' },
-    { id: 'arena', icon: <Swords className="w-5 h-5 text-blue-500" />, title: 'Arena 1v1 / 1v7', desc: 'Rywalizuj z botami o punkty ELO' },
-    { id: 'train_custom', icon: <Wrench className="w-5 h-5 text-emerald-400" />, title: 'Custom Board', desc: 'Rozwiązuj własne scenariusze' },
-    { id: 'theory', icon: <BookOpen className="w-5 h-5 text-blue-400" />, title: 'Preflop Charts', desc: 'Zbuduj idealne zasięgi otwarć' },
-    { id: 'stats', icon: <BarChart2 className="w-5 h-5 text-amber-500" />, title: 'Statystyki', desc: 'Analizuj swoje błędy i postępy' },
-    { id: 'leaderboard', icon: <Trophy className="w-5 h-5 text-amber-400" />, title: 'Ranking', desc: 'Top 10 graczy w systemie' },
+    { id: 'train', icon: <Target size={24} weight="duotone" className="text-emerald-500" />, title: 'Szybki Trening', desc: 'Graj przeciwko optymalnemu GTO' },
+    { id: 'arena', icon: <Sword size={24} weight="duotone" className="text-blue-500" />, title: 'Arena 1v1 / 1v7', desc: 'Rywalizuj z botami o punkty ELO' },
+    { id: 'train_custom', icon: <Wrench size={24} weight="duotone" className="text-emerald-400" />, title: 'Custom Board', desc: 'Rozwiązuj własne scenariusze' },
+    { id: 'theory', icon: <BookOpen size={24} weight="duotone" className="text-blue-400" />, title: 'Preflop Charts', desc: 'Zbuduj idealne zasięgi otwarć' },
+    { id: 'stats', icon: <ChartBar size={24} weight="duotone" className="text-amber-500" />, title: 'Statystyki', desc: 'Analizuj swoje błędy i postępy' },
+    { id: 'leaderboard', icon: <Trophy size={24} weight="duotone" className="text-amber-400" />, title: 'Ranking', desc: 'Top 10 graczy w systemie' },
   ];
 
   return (
@@ -47,7 +47,7 @@ export const Home = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) 
         <div className="bg-[#161616] border border-zinc-800/60 rounded-md flex flex-col cursor-pointer hover:bg-[#1a1a1a] transition-colors" onClick={() => setActiveTab('stats')}>
           <div className="flex justify-between items-center p-4 border-b border-zinc-800/60">
             <h3 className="font-bold text-sm text-zinc-100">Trainer stats</h3>
-            <ChevronRight className="w-4 h-4 text-zinc-600" />
+            <CaretRight size={16} weight="bold" className="text-zinc-600" />
           </div>
           <div className="p-6 grid grid-cols-2 gap-8">
             <div className="flex flex-col gap-6">
@@ -99,7 +99,7 @@ export const Home = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) 
         <div className="bg-[#161616] border border-zinc-800/60 rounded-md flex flex-col cursor-pointer hover:bg-[#1a1a1a] transition-colors" onClick={() => setActiveTab('arena')}>
           <div className="flex justify-between items-center p-4 border-b border-zinc-800/60">
             <h3 className="font-bold text-sm text-zinc-100">Arena stats</h3>
-            <ChevronRight className="w-4 h-4 text-zinc-600" />
+            <CaretRight size={16} weight="bold" className="text-zinc-600" />
           </div>
           <div className="p-6 flex flex-col justify-between h-full">
             <div className="flex gap-16">
