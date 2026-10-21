@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users, Trophy, User, LogIn, UserPlus, LogOut } from 'lucide-react';
+import { Swords, Target, BarChart2, BookOpen, Wrench, XSquare, Users, Trophy, User, LogIn, UserPlus, LogOut, Loader2 } from 'lucide-react';
 
 import { generateRandomScenario, parseScenario } from './utils/poker';
 import { Home } from './pages/Home';
@@ -9,8 +9,9 @@ import { Stats } from './pages/Stats';
 import { Arena } from './pages/Arena';
 import { Train } from './pages/Train';
 import { Account } from './pages/Account';
-import { Landing } from './pages/Landing'; // Pamiętaj o tym imporcie!
+import { Landing } from './pages/Landing';
 import { AuthModal } from './components/AuthModal';
+import { PokerCard } from './components/PokerCard';
 
 // --- SYSTEM RANG ---
 export const getRank = (elo: number) => {
@@ -25,11 +26,7 @@ export const getRank = (elo: number) => {
 export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [authUsername, setAuthUsername] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authError, setAuthError] = useState('');
 
-  // ZAPAMIĘTYWANIE SESJI (Krok 1)
   const [currentUser, setCurrentUser] = useState<any>(() => {
     const savedUser = localStorage.getItem('poker_user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -201,20 +198,6 @@ export default function App() {
     }).catch(e => console.log(e));
   };
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); setAuthError('');
-    fetch(`https://poker-api-fsle.onrender.com/api/${authMode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: authUsername, password: authPassword }) })
-    .then(res => res.json()).then(data => {
-      if (data.success) {
-        const userObj = { id: data.id, username: data.username };
-        setCurrentUser(userObj);
-        localStorage.setItem('poker_user', JSON.stringify(userObj));
-
-        setEloTrain(data.elo_train); setElo1v1(data.elo_1v1); setElo1v7(data.elo_1v7); setEloHistory([data.elo_train]); setShowAuthModal(false);
-      } else { setAuthError(data.message); }
-    });
-  };
-
   const resetStats = () => {
     if (window.confirm('Czy na pewno chcesz zresetować statystyki?')) {
       setStreak(0); setEloTrain(1000); setEloHistory([1000]); setHandHistory([]); setHandsPlayed(0); saveStatsToDb('train', 1000, 0, 0);
@@ -352,24 +335,17 @@ export default function App() {
   const arenaProps = { arenaState, setArenaState, shake, heroHP, botHP, botElo, feedback: arenaFeedback, isSolving: arenaIsSolving, currentHand: arenaHand, currentStrategy: arenaStrategy, handleArena1v1Action, handleArena1v7Action, startArena1v1, startArena1v7, aliveCount, players8, arenaPlacement, arenaWinner, arenaEloChange, arenaRound };
   const trainProps = { trainMode, showCustomBuilder, isSolving: trainIsSolving, currentHand: trainHand, feedback: trainFeedback, currentStrategy: trainStrategy, handleAction, actionLogs: trainActionLogs, customHero, customBoard, customPosition, setCustomPosition, customHistory, setCustomHistory, toggleCustomCard: (card: string) => { if (customHero.includes(card)) setCustomHero(p => p.filter(c => c !== card)); else if (customBoard.includes(card)) setCustomBoard(p => p.filter(c => c !== card)); else { if (customHero.length < 2) setCustomHero(p => [...p, card]); else if (customBoard.length < 5) setCustomBoard(p => [...p, card]); } }, clearCustomBuilder: () => { setCustomHero([]); setCustomBoard([]); setCustomHistory(''); }, analyzeCustom: () => triggerSolver({ hand: customHero.join(''), board: customBoard.join(''), pos: customPosition, history: customHistory, spotTitle: "Custom Board", stack: 100, villainPos: "BB" }), isCustomValid: customHero.length === 2 && [0, 3, 4, 5].includes(customBoard.length), loadNewRandomHand };
 
-  // ==========================================
-  // RENDER GŁÓWNY (NOWY SCHLUDNY LAYOUT)
-  // ==========================================
   return (
     <div className="flex h-screen w-screen bg-[#121212] text-slate-200 font-sans overflow-hidden relative">
 
-      {/* LEWY PANEL (Nowy Sidebar) */}
+      {/* LEWY PANEL (Sidebar) */}
       <aside className="w-64 bg-[#0a0a0a] border-r border-zinc-800 flex flex-col shrink-0 z-30">
-
-        {/* LOGO */}
         <div className="p-6 flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('home')}>
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-emerald-900/50">♠</div>
           <span className="font-black text-2xl tracking-tight text-white">GTO<span className="text-emerald-500">Duel</span></span>
         </div>
 
-        {/* NAWIGACJA */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-
           <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest px-3 mb-2 block mt-2">Gra & Trening</span>
           <button onClick={() => setActiveTab('arena')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === 'arena' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}>
             <Swords className="w-5 h-5" /> Arena 1v1 / 1v7
@@ -399,10 +375,8 @@ export default function App() {
           <button onClick={() => setActiveTab('account')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === 'account' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}>
             <User className="w-5 h-5" /> Moje Konto
           </button>
-
         </nav>
 
-        {/* DOLNA SEKCJA (Zalogowany / Niezalogowany) */}
         <div className="p-4 border-t border-zinc-800/50 bg-[#0a0a0a]">
           {currentUser ? (
             <div className="flex flex-col gap-3">
@@ -434,25 +408,21 @@ export default function App() {
 
       {/* PRAWA STRONA (Główna zawartość) */}
       <div className="flex-1 flex flex-col overflow-hidden relative bg-[#121212]">
-
-      {/* Widok w zależności od stanu zalogowania i zakładki */}
-              {!currentUser ? (
-                activeTab === 'train' ? (
-                  <Train {...trainProps} currentUser={currentUser} onLoginClick={() => { setAuthMode('register'); setShowAuthModal(true); }} />
-                ) : (
-                  <Landing
-                    onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-                    onStartTraining={() => setActiveTab('train')}
-                  />
-                )
-              ) : (
+        {!currentUser ? (
+          activeTab === 'train' ? (
+            <Train {...trainProps} currentUser={currentUser} onLoginClick={() => { setAuthMode('register'); setShowAuthModal(true); }} />
+          ) : (
+            <Landing
+              onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+              onStartTraining={() => setActiveTab('train')}
+            />
+          )
+        ) : (
           <>
             {activeTab === 'home' && <main className="flex-1 overflow-y-auto p-6 lg:p-10"><Home setActiveTab={setActiveTab} /></main>}
             {activeTab === 'theory' && <main className="flex-1 overflow-y-auto p-6 lg:p-10"><Theory activeTheoryPos={activeTheoryPos} setActiveTheoryPos={setActiveTheoryPos} preflopData={preflopData} selectedPreflop={selectedPreflop} setSelectedPreflop={setSelectedPreflop} /></main>}
             {activeTab === 'stats' && <main className="flex-1 overflow-y-auto p-6 lg:p-10"><Stats eloTrain={eloTrain} elo1v1={elo1v1} elo1v7={elo1v7} eloHistory={eloHistory} handHistory={handHistory} handsPlayed={handsPlayed} resetStats={resetStats} /></main>}
             {activeTab === 'account' && <main className="flex-1 overflow-y-auto p-6 lg:p-10"><Account currentUser={currentUser} setCurrentUser={setCurrentUser} elo1v1={elo1v1} friends={friends} handHistory={handHistory} setActiveTab={setActiveTab} /></main>}
-
-            {/* Zostawiłem resztę Twoich istniejących bloków z renderowaniem gry bez zmian! */}
 
             {activeTab === 'leaderboard' && (
               <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col gap-8 items-center">
@@ -564,107 +534,107 @@ export default function App() {
               </main>
             )}
 
+            {/* CZYSTY HUD DLA DUEL 1v1 */}
             {activeTab === 'duel' && (
-              <motion.main animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}} transition={{ duration: 0.4 }} className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col relative">
-                <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-6">
-                    <div className="flex flex-col">
-                        <h2 className="text-3xl font-black text-white flex items-center gap-3"><Swords className="text-rose-500" /> GTO Duel (Na Żywo)</h2>
-                        <span className="text-xs font-mono text-zinc-500 mt-1">POKÓJ: {duelRoomId}</span>
-                    </div>
-                    <button onClick={() => { if(duelWsRef.current) duelWsRef.current.close(); setActiveTab('friends'); setDuelState('idle'); loadFriends(); }} className="text-zinc-500 hover:text-white font-bold text-sm bg-zinc-900 px-4 py-2 rounded border border-zinc-800">
-                        Opuść pokój
-                    </button>
+              <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 flex flex-col items-center relative">
+
+                <div className="w-full max-w-3xl flex justify-between items-end border-b border-zinc-800 pb-4 mb-8">
+                  <div>
+                    <h2 className="text-xl font-bold text-zinc-100">Live Duel GTO</h2>
+                    <span className="text-xs font-mono text-zinc-500">Sesja: {duelRoomId}</span>
+                  </div>
+                  <button onClick={() => { if(duelWsRef.current) duelWsRef.current.close(); setActiveTab('friends'); setDuelState('idle'); loadFriends(); }} className="text-xs font-bold text-zinc-500 hover:text-white transition-colors bg-zinc-900 px-3 py-1.5 rounded border border-zinc-800">
+                    Zakończ sesję
+                  </button>
                 </div>
 
                 {duelState === 'lobby' && (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                        <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <h3 className="text-2xl font-black text-white text-center">Oczekujesz w pokoju...</h3>
-                        <p className="text-zinc-400 text-center max-w-sm">Gdy <span className="text-emerald-400 font-bold">{duelOpponent?.username}</span> kliknie u siebie "Wyzwij na 1v1", system automatycznie połączy Wasze maszyny.</p>
-                    </div>
+                  <div className="w-full max-w-3xl flex flex-col items-center justify-center p-12 bg-zinc-900/50 border border-zinc-800 rounded">
+                    <Loader2 className="w-6 h-6 animate-spin text-zinc-500 mb-4" />
+                    <h3 className="text-zinc-300 font-bold mb-1">Oczekiwanie na połączenie</h3>
+                    <p className="text-sm text-zinc-500">Mecz rozpocznie się, gdy {duelOpponent?.username} dołączy do pokoju.</p>
+                  </div>
                 )}
 
                 {duelState === 'playing' && duelHand && (
-                    <div className="flex flex-col gap-8 flex-1 max-w-5xl w-full mx-auto">
+                  <div className="w-full max-w-3xl flex flex-col gap-4">
 
-                        <div className="flex justify-between items-center bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-2xl relative overflow-hidden">
-
-                            <div className="flex flex-col w-[40%] z-10">
-                                <span className="font-black text-white mb-2 text-lg uppercase tracking-wider flex items-center gap-2">
-                                  {currentUser.username} <span className="text-zinc-500 text-sm">(TY)</span>
-                                  <span className={`px-2 py-0.5 rounded text-[10px] ${heroRank.bg} ${heroRank.color} border ${heroRank.border}`}>{heroRank.icon} {heroRank.name}</span>
-                                </span>
-                                <div className="h-6 bg-zinc-950 rounded-full overflow-hidden border border-zinc-700">
-                                    <div className="h-full bg-gradient-to-r from-blue-700 to-blue-500 transition-all duration-700" style={{width: `${(duelHeroHp/1000)*100}%`}}></div>
-                                </div>
-                                <span className="text-sm font-black font-mono text-blue-400 mt-2">{duelHeroHp} HP</span>
-                            </div>
-
-                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-black text-zinc-800 italic opacity-50 select-none z-0">VS</div>
-
-                            <div className="flex flex-col w-[40%] items-end z-10">
-                                <span className="font-black text-rose-500 mb-2 text-lg uppercase tracking-wider flex items-center gap-2 justify-end">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] ${oppRank.bg} ${oppRank.color} border ${oppRank.border}`}>{oppRank.icon} {oppRank.name}</span>
-                                  {duelOpponent?.username}
-                                </span>
-                                <div className="h-6 bg-zinc-950 rounded-full overflow-hidden w-full flex justify-end border border-zinc-700">
-                                    <div className="h-full bg-gradient-to-l from-rose-700 to-rose-500 transition-all duration-700" style={{width: `${(duelOpponentHp/1000)*100}%`}}></div>
-                                </div>
-                                <span className="text-sm font-black font-mono text-rose-400 mt-2">{duelOpponentHp} HP</span>
-                            </div>
+                    <div className="flex justify-between items-center p-4 bg-zinc-900 border border-zinc-800 rounded">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-zinc-800 rounded-sm flex items-center justify-center text-zinc-500 font-bold text-sm">
+                          {duelOpponent?.username.charAt(0).toUpperCase()}
                         </div>
-
-                        <div className="flex-1 flex flex-col items-center justify-center gap-8 bg-zinc-900/30 rounded-xl border border-zinc-800 p-8">
-                              {duelFeedback.msg && (
-                                <motion.div initial={{y: -20, opacity: 0}} animate={{y:0, opacity: 1}} className={`px-8 py-3 rounded-full font-black tracking-wide text-sm ${duelFeedback.type === 'success' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/50' : duelFeedback.type === 'error' ? 'bg-rose-600/20 text-rose-400 border border-rose-600/50' : 'bg-blue-600/20 text-blue-400 border border-blue-600/50'}`}>
-                                    {duelFeedback.msg}
-                                </motion.div>
-                            )}
-                            <div className="flex flex-col items-center gap-3">
-                                <span className="text-[10px] uppercase font-black tracking-widest text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">Board ({duelHand.pos})</span>
-                                <div className="flex gap-2 min-h-[5rem]">
-                                    {duelHand.board ? duelHand.board.match(/.{1,2}/g)?.map((c:string, i:number) => {
-                                        const isRed = c.includes('h') || c.includes('d');
-                                        return ( <motion.div initial={{scale:0, rotateY: 90}} animate={{scale:1, rotateY: 0}} transition={{delay: i*0.1}} key={i} className={`w-14 h-20 bg-white rounded flex items-center justify-center font-black text-xl border-2 border-zinc-300 shadow-lg ${isRed ? 'text-rose-600' : 'text-zinc-900'}`}>{c}</motion.div> )
-                                    }) : <div className="text-zinc-600 italic font-bold">Faza Preflop</div>}
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center gap-3">
-                                <span className="text-[10px] uppercase font-black tracking-widest text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800 mt-4">Twoje Karty (Ukryte)</span>
-                                <div className="flex gap-2">
-                                    {duelHand.hand.match(/.{1,2}/g)?.map((c:string, i:number) => {
-                                        const isRed = c.includes('h') || c.includes('d');
-                                        return ( <div key={i} className={`w-16 h-24 bg-white rounded flex items-center justify-center font-black text-2xl border-4 border-zinc-300 shadow-2xl transform hover:-translate-y-2 transition-transform ${isRed ? 'text-rose-600' : 'text-zinc-900'}`}>{c}</div> )
-                                    })}
-                                </div>
-                            </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-zinc-200 text-sm">{duelOpponent?.username}</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">ELO: {oppElo}</span>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {['FOLD', duelHand.board===''?'CHECK/CALL':'CALL', 'RAISE 33%', 'RAISE 75%'].map((actionName, idx) => (
-                                <button key={idx} onClick={() => handleDuelAction(idx)} disabled={duelFeedback.msg.includes('Czekam') || duelFeedback.msg.includes('Wynik')} className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700 py-6 rounded-xl font-black tracking-wider text-white transition-all shadow-lg active:scale-95">
-                                    {actionName}
-                                </button>
-                            ))}
-                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="font-mono font-bold text-zinc-300 text-lg">{duelOpponentHp}</span>
+                        <span className="text-[9px] uppercase font-bold text-zinc-600">HP Przeciwnika</span>
+                      </div>
                     </div>
+
+                    <div className="flex flex-col items-center justify-center min-h-[160px] bg-[#161616] border border-zinc-800 rounded p-6 relative">
+                      <span className="absolute top-3 left-3 text-[10px] font-bold uppercase text-zinc-600">Pozycja: {duelHand.pos}</span>
+
+                      {duelFeedback.msg && (
+                        <span className={`absolute top-3 right-3 text-[10px] font-bold uppercase px-2 py-0.5 rounded ${duelFeedback.type === 'success' ? 'bg-emerald-900/30 text-emerald-500 border border-emerald-900' : duelFeedback.type === 'error' ? 'bg-rose-900/30 text-rose-500 border border-rose-900' : 'bg-blue-900/30 text-blue-500 border border-blue-900'}`}>
+                          {duelFeedback.msg}
+                        </span>
+                      )}
+
+                      <div className="flex gap-2">
+                        {duelHand.board ? duelHand.board.match(/.{1,2}/g)?.map((c:string, i:number) => (
+                          <PokerCard key={i} card={c} size="large" />
+                        )) : <span className="text-zinc-600 font-bold text-sm uppercase tracking-widest">Preflop</span>}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center p-4 bg-zinc-900 border border-zinc-800 rounded">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-zinc-600 mb-2">Twoja Ręka</span>
+                        <div className="flex gap-2">
+                          {duelHand.hand.match(/.{1,2}/g)?.map((c:string, i:number) => (
+                            <PokerCard key={i} card={c} size="large" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end justify-center">
+                        <span className="font-mono font-bold text-zinc-300 text-2xl">{duelHeroHp}</span>
+                        <span className="text-[10px] uppercase font-bold text-zinc-600">Twoje HP</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-2">
+                      <button disabled={duelFeedback.msg.includes('Czekam') || duelFeedback.msg.includes('Wynik')} onClick={() => handleDuelAction(0)} className="flex-1 py-4 bg-[#4582c3] hover:bg-[#3b70a8] disabled:opacity-30 text-white text-xs font-bold tracking-wider rounded-sm transition-colors">
+                        FOLD
+                      </button>
+                      <button disabled={duelFeedback.msg.includes('Czekam') || duelFeedback.msg.includes('Wynik')} onClick={() => handleDuelAction(1)} className="flex-1 py-4 bg-[#64b96b] hover:bg-[#539d59] disabled:opacity-30 text-white text-xs font-bold tracking-wider rounded-sm transition-colors">
+                        {duelHand.board === '' ? 'CHECK / CALL' : 'CALL'}
+                      </button>
+                      <button disabled={duelFeedback.msg.includes('Czekam') || duelFeedback.msg.includes('Wynik')} onClick={() => handleDuelAction(2)} className="flex-1 py-4 bg-[#ef4c4a] hover:bg-[#d44140] disabled:opacity-30 text-white text-xs font-bold tracking-wider rounded-sm transition-colors">
+                        RAISE 33%
+                      </button>
+                      <button disabled={duelFeedback.msg.includes('Czekam') || duelFeedback.msg.includes('Wynik')} onClick={() => handleDuelAction(3)} className="flex-1 py-4 bg-[#c22a28] hover:bg-[#a62221] disabled:opacity-30 text-white text-xs font-bold tracking-wider rounded-sm transition-colors">
+                        RAISE 75%
+                      </button>
+                    </div>
+                  </div>
                 )}
+
                 {duelState === 'gameover' && (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                        <motion.div initial={{scale:0, rotate: -180}} animate={{scale:1, rotate:0}} transition={{type: "spring"}} className="w-40 h-40 rounded-full flex items-center justify-center text-6xl mb-4 shadow-[0_0_80px_rgba(0,0,0,0.5)] bg-zinc-900 border-4 border-zinc-800 relative">
-                            {duelWinner === 'hero' ? '🏆' : '💀'}
-                            {duelWinner === 'hero' && <div className="absolute inset-0 rounded-full shadow-[0_0_50px_rgba(16,185,129,0.5)] animate-pulse"></div>}
-                            {duelWinner === 'opponent' && <div className="absolute inset-0 rounded-full shadow-[0_0_50px_rgba(225,29,72,0.5)] animate-pulse"></div>}
-                        </motion.div>
-                        <h2 className="text-5xl font-black text-white">{duelWinner === 'hero' ? 'ZWYCIĘSTWO!' : 'PORAŻKA!'}</h2>
-                        <p className="text-zinc-400 text-lg max-w-md text-center">
-                            {duelWinner === 'hero' ? `Zniszczyłeś algorytm GTO w głowie gracza ${duelOpponent?.username}. Twoje ELO wzrosło o +25!` : `${duelOpponent?.username} zagrał bliżej optymalnej strategii matematycznej. Tracisz 25 punktów ELO.`}
-                        </p>
-                        <button onClick={() => { setActiveTab('friends'); setDuelState('idle'); loadFriends(); }} className="mt-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest px-10 py-4 rounded-xl shadow-lg hover:shadow-emerald-500/20 transition-all">
-                            Powrót na Salony
-                        </button>
-                    </div>
+                  <div className="w-full max-w-3xl flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded mt-4">
+                    <h2 className="text-2xl font-bold text-white mb-2">{duelWinner === 'hero' ? 'Mecz Zakończony (Zwycięstwo)' : 'Mecz Zakończony (Porażka)'}</h2>
+                    <p className="text-sm text-zinc-400 mb-8">
+                      {duelWinner === 'hero' ? `Optymalna gra. Pokonałeś gracza ${duelOpponent?.username}. (+25 ELO)` : `Przeciwnik grał bliżej GTO. Przegrałeś z graczem ${duelOpponent?.username}. (-25 ELO)`}
+                    </p>
+                    <button onClick={() => { setActiveTab('friends'); setDuelState('idle'); loadFriends(); }} className="bg-white hover:bg-zinc-200 text-zinc-900 font-bold px-6 py-2 rounded text-sm transition-colors">
+                      Wróć do społeczności
+                    </button>
+                  </div>
                 )}
-              </motion.main>
+              </main>
             )}
 
             {activeTab === 'arena' && <Arena {...arenaProps} />}
@@ -674,23 +644,23 @@ export default function App() {
       </div>
 
       {/* NOWY MODAL AUTORYZACJI */}
-            <AnimatePresence>
-              {showAuthModal && (
-                <AuthModal
-                  initialMode={authMode}
-                  onClose={() => setShowAuthModal(false)}
-                  onSuccess={(user) => {
-                    setCurrentUser({ id: user.id, username: user.username });
-                    localStorage.setItem('poker_user', JSON.stringify({ id: user.id, username: user.username }));
-                    setEloTrain(user.elo_train);
-                    setElo1v1(user.elo_1v1);
-                    setElo1v7(user.elo_1v7);
-                    setEloHistory([user.elo_train]);
-                    setShowAuthModal(false);
-                  }}
-                />
-              )}
-            </AnimatePresence>
+      <AnimatePresence>
+        {showAuthModal && (
+          <AuthModal
+            initialMode={authMode}
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={(user) => {
+              setCurrentUser({ id: user.id, username: user.username });
+              localStorage.setItem('poker_user', JSON.stringify({ id: user.id, username: user.username }));
+              setEloTrain(user.elo_train);
+              setElo1v1(user.elo_1v1);
+              setElo1v7(user.elo_1v7);
+              setEloHistory([user.elo_train]);
+              setShowAuthModal(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
