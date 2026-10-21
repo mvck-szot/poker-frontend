@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, User, Users, Trophy, Skull, Loader2, Play } from 'lucide-react';
+import { Swords, User, Users, Trophy, Skull, Loader2, Play, Shield, Zap, Cpu } from 'lucide-react';
 import { PokerCard, EmptyCardSlot } from '../components/PokerCard';
 import { parseScenario } from '../utils/poker';
 
@@ -92,50 +92,80 @@ export const Arena = (props: any) => {
     <main className="flex-1 overflow-y-auto bg-[#121212] p-6 lg:p-10 relative flex flex-col">
       {/* LOBBY ARENY */}
       {arenaState === 'setup' && (
-        <div className="max-w-4xl mx-auto flex flex-col gap-6 mt-4 w-full">
-          <div className="border-b border-zinc-800 pb-4 mb-4">
-            <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">GTO Arena</h2>
-            <p className="text-zinc-500 text-sm">Wybierz tryb rywalizacji i walcz o punkty ELO z botami symulującymi graczy.</p>
+        <div className="max-w-5xl mx-auto flex flex-col gap-10 mt-4 w-full">
+
+          <div className="flex flex-col gap-2 border-b border-zinc-800 pb-6 mb-2">
+            <h2 className="text-4xl font-black text-white flex items-center gap-3">
+              <Swords className="text-rose-500 w-10 h-10" /> GTO Arena
+            </h2>
+            <p className="text-zinc-400 text-lg">Wybierz tryb rywalizacji i walcz o punkty ELO z botami symulującymi graczy.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            {/* 1V1 CARD */}
-            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col gap-4">
-              <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
-                <div className="p-3 bg-zinc-800 rounded"><User className="w-6 h-6 text-zinc-300" /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+            {/* 1V1 CARD - Mroczny i agresywny styl */}
+            <div className="bg-zinc-900 border-t-4 border-t-rose-500 border-x border-b border-zinc-800 p-8 rounded-2xl flex flex-col gap-6 shadow-[0_0_40px_rgba(225,29,72,0.1)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-rose-500/5 to-transparent pointer-events-none"></div>
+
+              <div className="flex items-center gap-4 z-10">
+                <div className="p-3 bg-rose-500/10 rounded-xl"><User className="w-8 h-8 text-rose-500" /></div>
                 <div>
-                  <h3 className="text-lg font-bold text-zinc-100">Pojedynek 1v1</h3>
-                  <p className="text-zinc-500 text-xs">Klasyczny heads-up GTO</p>
+                  <h3 className="text-2xl font-black text-white">Pojedynek <span className="text-rose-500">1v1</span></h3>
+                  <p className="text-zinc-500 text-sm font-bold">Klasyczny heads-up GTO</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 mt-2">
-                <button onClick={() => startArena1v1(800)} className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-3 rounded text-sm font-bold transition-colors flex justify-between px-4">
-                  <span>Nowicjusz</span><span className="font-mono opacity-50">800 ELO</span>
+
+              <div className="flex flex-col gap-3 mt-2 z-10">
+                {/* Bot 1: Nowicjusz */}
+                <button onClick={() => startArena1v1(800)} className="group relative w-full bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/50 p-4 rounded-xl transition-all flex items-center justify-between overflow-hidden cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Shield className="text-emerald-500 w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <span className="font-bold text-zinc-300 group-hover:text-white transition-colors">Nowicjusz</span>
+                  </div>
+                  <span className="font-mono text-emerald-500/50 font-bold text-xs group-hover:text-emerald-400 transition-colors">800 ELO</span>
                 </button>
-                <button onClick={() => startArena1v1(1500)} className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-3 rounded text-sm font-bold transition-colors flex justify-between px-4">
-                  <span>Regular</span><span className="font-mono opacity-50">1500 ELO</span>
+
+                {/* Bot 2: Regular */}
+                <button onClick={() => startArena1v1(1500)} className="group relative w-full bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-blue-500/50 p-4 rounded-xl transition-all flex items-center justify-between overflow-hidden cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Zap className="text-blue-500 w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <span className="font-bold text-zinc-300 group-hover:text-white transition-colors">Regular</span>
+                  </div>
+                  <span className="font-mono text-blue-500/50 font-bold text-xs group-hover:text-blue-400 transition-colors">1500 ELO</span>
                 </button>
-                <button onClick={() => startArena1v1(2500)} className="w-full bg-white hover:bg-zinc-200 text-zinc-900 py-3 rounded text-sm font-bold transition-colors flex justify-between px-4">
-                  <span>Maszyna GTO</span><span className="font-mono opacity-50 text-zinc-500">2500 ELO</span>
+
+                {/* Bot 3: Maszyna GTO */}
+                <button onClick={() => startArena1v1(2500)} className="group relative w-full bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/30 hover:border-rose-500 p-5 rounded-xl transition-all flex items-center justify-between overflow-hidden shadow-[0_0_15px_rgba(225,29,72,0.1)] cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Cpu className="text-rose-500 w-6 h-6 group-hover:scale-110 transition-transform animate-pulse" />
+                    <span className="font-black text-rose-100 transition-colors text-lg">Maszyna GTO</span>
+                  </div>
+                  <span className="font-mono text-rose-500 font-bold text-sm bg-rose-500/10 px-3 py-1 rounded">2500 ELO</span>
                 </button>
               </div>
             </div>
 
-            {/* 1V7 CARD */}
-            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded flex flex-col justify-between gap-4">
-              <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
-                <div className="p-3 bg-zinc-800 rounded"><Users className="w-6 h-6 text-zinc-300" /></div>
-                <div>
-                  <h3 className="text-lg font-bold text-zinc-100">Battle Royale 1v7</h3>
-                  <p className="text-zinc-500 text-xs">Przetrwanie na pełnym stole (TFT Style)</p>
+            {/* 1V7 CARD - Złoty, turniejowy styl */}
+            <div className="bg-zinc-900 border-t-4 border-t-amber-500 border-x border-b border-zinc-800 p-8 rounded-2xl flex flex-col justify-between gap-6 shadow-[0_0_40px_rgba(245,158,11,0.05)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none"></div>
+
+              <div className="flex flex-col gap-6 z-10 h-full">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-amber-500/10 rounded-xl"><Users className="w-8 h-8 text-amber-500" /></div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white">Battle Royale <span className="text-amber-500">1v7</span></h3>
+                    <p className="text-zinc-500 text-sm font-bold">Przetrwanie na pełnym stole (TFT Style)</p>
+                  </div>
                 </div>
+
+                <p className="text-zinc-400 text-lg leading-relaxed flex-1 mt-4">
+                  Zasiądź do stołu pełnego botów o losowym poziomie trudności. Każdy najmniejszy błąd odlicza Twoje cenne punkty życia.
+                  Graj czystym GTO, wyeliminuj przeciwników i przetrwaj jako ostatni na stole.
+                </p>
+
+                <button onClick={() => startArena1v7()} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black py-5 rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 text-lg mt-auto">
+                  <Trophy className="w-6 h-6"/> Rozpocznij Turniej
+                </button>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                Graj przeciwko 7 botom o różnym poziomie umiejętności na raz. Błędy odliczają punkty życia (HP). Ostatni żywy gracz wygrywa.
-              </p>
-              <button onClick={() => startArena1v7()} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded transition-colors flex items-center justify-center gap-2 mt-4">
-                <Play className="w-4 h-4"/> Rozpocznij Turniej
-              </button>
             </div>
           </div>
         </div>
