@@ -70,21 +70,43 @@ export function Landing({ onLoginClick, onStartTraining }: LandingProps) {
             </button>
           </div>
 
+          {/* Animowana aranżacja 72o */}
           <div className="relative aspect-square flex items-center justify-center w-full max-w-md mx-auto">
-            <div className="absolute inset-0 bg-emerald-500/10 blur-[100px] rounded-full"></div>
+            <div className="absolute inset-0 bg-emerald-500/10 blur-[100px] rounded-full z-0"></div>
 
-            <motion.div animate={floatingAnim(0)} className="absolute top-[10%] left-[10%] w-24 h-24 bg-teal-500 rounded-full flex items-center justify-center shadow-lg border-4 border-teal-400/50 z-20">
-              <GraduationCap className="w-12 h-12 text-white" />
+            {/* Lewitująca ikona 1 */}
+            <motion.div animate={floatingAnim(0)} className="absolute top-[10%] left-[5%] w-20 h-20 bg-teal-500 rounded-full flex items-center justify-center shadow-lg border-4 border-teal-400/50 z-20">
+              <GraduationCap className="w-10 h-10 text-white" />
             </motion.div>
 
-            <motion.div animate={floatingAnim(1.5)} className="absolute z-10 w-48 h-48 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)] border-4 border-emerald-300/50 rotate-45">
-              <div className="-rotate-45 text-emerald-950 flex flex-col items-center">
-                <span className="text-8xl drop-shadow-md">♠</span>
+            {/* Centralna Ręka 72o */}
+            <motion.div animate={floatingAnim(1.5)} className="relative z-10 flex items-center justify-center">
+              {/* Światło pod kartami */}
+              <div className="absolute inset-0 bg-emerald-500/20 blur-[50px] w-64 h-64 rounded-full -z-10"></div>
+
+              {/* Karta 7 Pik */}
+              <div className="w-32 h-48 bg-white rounded-2xl shadow-2xl border-4 border-zinc-200 flex flex-col justify-between p-3 transform -rotate-[15deg] translate-x-6 z-10 text-zinc-900">
+                <span className="text-3xl font-black leading-none">7</span>
+                <span className="text-6xl self-center">♠</span>
+                <span className="text-3xl font-black leading-none rotate-180">7</span>
               </div>
+
+              {/* Karta 2 Kier */}
+              <div className="w-32 h-48 bg-white rounded-2xl shadow-2xl border-4 border-zinc-200 flex flex-col justify-between p-3 transform rotate-[10deg] -translate-x-6 translate-y-8 z-20 text-rose-600">
+                <span className="text-3xl font-black leading-none">2</span>
+                <span className="text-6xl self-center">♥</span>
+                <span className="text-3xl font-black leading-none rotate-180">2</span>
+              </div>
+
+              {/* Śmieszny badge GTO dla 72o */}
+              <motion.div animate={floatingAnim(2.5)} className="absolute -bottom-2 -right-4 z-30 bg-rose-500 text-white font-black px-4 py-2 rounded-lg shadow-lg border-2 border-rose-400 rotate-12">
+                100% FOLD
+              </motion.div>
             </motion.div>
 
-            <motion.div animate={floatingAnim(0.8)} className="absolute bottom-[10%] right-[10%] w-32 h-32 bg-emerald-800/90 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl border-2 border-emerald-600/50 rotate-45 z-20">
-              <div className="-rotate-45 text-emerald-200"><BarChart2 className="w-14 h-14" /></div>
+            {/* Lewitująca ikona 2 */}
+            <motion.div animate={floatingAnim(0.8)} className="absolute bottom-[5%] right-[5%] w-24 h-24 bg-emerald-800/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl border-2 border-emerald-600/50 rotate-45 z-20">
+              <div className="-rotate-45 text-emerald-200"><BarChart2 className="w-10 h-10" /></div>
             </motion.div>
           </div>
 
